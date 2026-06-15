@@ -1,0 +1,14 @@
+services:
+  texset:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - '7474:7474'
+    volumes:
+      - ./projects:/app/projects
+    environment:
+      - PORT=7474
+      - TEXSET_PROJECTS_DIR=/app/projects
+    user: '${UID:-1000}:${GID:-1000}'
+    restart: unless-stopped

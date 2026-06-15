@@ -1,0 +1,24 @@
+# Development image: deps are baked in, source code is bind-mounted
+FROM node:20-bookworm-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       texlive-xetex \
+       texlive-fonts-recommended \
+       texlive-latex-extra \
+       fontconfig \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# Source code comes in via bind mounts, so we don't COPY it here.
+# Just need the node_modules and TeX Live ready to go.
+
+EXPOSE 7474
+
+CMD ["pnpm", "dev", "--port", "7474"]

@@ -1,0 +1,118 @@
+/* fonts */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* radii */
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* light theme */
+  --surface: 0 0% 99%;
+  --surface-raised: 0 0% 100%;
+  --surface-overlay: 220 14% 96%;
+  --border: 220 13% 90%;
+  --border-subtle: 220 13% 94%;
+  --text-primary: 220 14% 10%;
+  --text-secondary: 220 10% 40%;
+  --text-muted: 220 8% 60%;
+  --accent: 235 82% 60%;
+  --accent-hover: 235 82% 54%;
+  --accent-muted: 235 60% 94%;
+  --success: 142 72% 40%;
+  --warning: 38 92% 50%;
+  --error: 0 72% 50%;
+}
+
+.dark {
+  --surface: 225 16% 8%;
+  --surface-raised: 225 14% 11%;
+  --surface-overlay: 225 14% 14%;
+  --border: 225 12% 18%;
+  --border-subtle: 225 12% 14%;
+  --text-primary: 220 14% 96%;
+  --text-secondary: 220 10% 68%;
+  --text-muted: 220 8% 46%;
+  --accent: 235 82% 66%;
+  --accent-hover: 235 82% 72%;
+  --accent-muted: 235 40% 18%;
+  --success: 142 60% 50%;
+  --warning: 38 80% 56%;
+  --error: 0 60% 58%;
+}
+
+/* reset and base */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: hsl(var(--surface));
+  color: hsl(var(--text-primary));
+  min-height: 100vh;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* scrollbar styling for the editor */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--text-muted) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--text-muted) / 0.5);
+}
+
+/* selection */
+::selection {
+  background: hsl(var(--accent) / 0.2);
+  color: hsl(var(--text-primary));
+}
+
+/* focus ring */
+:focus-visible {
+  outline: 2px solid hsl(var(--accent));
+  outline-offset: 2px;
+}
+
+/* glass effect utility */
+@layer utilities {
+  .glass {
+    background: hsl(var(--surface-raised) / 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  .glass-strong {
+    background: hsl(var(--surface-raised) / 0.85);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid hsl(var(--border) / 0.6);
+  }
+}

@@ -15,6 +15,8 @@ import {
 import { Button } from "@/components/ui/Button";
 import Image from "next/image";
 import dynamic from "next/dynamic";
+import type { EditorPaneRef } from "@/components/editor/EditorPane";
+import type { PreviewPaneRef } from "@/components/editor/PreviewPane";
 
 const EditorPane = dynamic(() => import("@/components/editor/EditorPane"), {
   ssr: false,
@@ -42,6 +44,9 @@ export default function EditorPage() {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
   const sourceRef = useRef(source);
+  
+  const editorRef = useRef<EditorPaneRef>(null);
+  const previewRef = useRef<PreviewPaneRef>(null);
 
   // keep ref in sync for the debounce callback
   useEffect(() => {
@@ -168,6 +173,37 @@ export default function EditorPage() {
     }
   }
 
+  // Forward search (Code -> PDF)
+  const handleEditorSync = useCallback(async (line: number) => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/synctex?line=${line}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.point && previewRef.current) {
+          const { page, x, y, w, h } = data.point;
+          previewRef.current.scrollToPoint(page, x, y, w, h);
+        }
+      }
+    } catch (err) {
+      console.error("Forward search failed", err);
+    }
+  }, [projectId]);
+
+  // Inverse search (PDF -> Code)
+  const handlePreviewSync = useCallback(async (page: number, x: number, y: number) => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/synctex?page=${page}&x=${x}&y=${y}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.match && editorRef.current) {
+          editorRef.current.scrollToLine(data.match.line);
+        }
+      }
+    } catch (err) {
+      console.error("Inverse search failed", err);
+    }
+  }, [projectId]);
+
   const statusIcon = {
     idle: null,
     compiling: <Loader2 size={14} className="animate-spin text-accent" />,
@@ -228,17 +264,21 @@ export default function EditorPage() {
         {/* editor pane */}
         <div className="w-1/2 flex flex-col border-r border-border min-h-0 bg-surface">
           <EditorPane
+            ref={editorRef}
             value={source}
             onChange={handleSourceChange}
             onCursorChange={(line, col) => setCursorPos({ line, col })}
+            onSyncRequest={handleEditorSync}
           />
         </div>
 
         {/* preview pane */}
         <div className="w-1/2 flex flex-col bg-surface-overlay min-h-0">
           <PreviewPane
+            ref={previewRef}
             pdfUrl={pdfUrl}
             compiling={compileStatus === "compiling"}
+            onSyncRequest={handlePreviewSync}
           />
         </div>
       </div>

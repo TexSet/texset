@@ -27,6 +27,7 @@ export async function compileProject(projectId: string): Promise<CompileResult> 
   return new Promise((resolve) => {
     const proc = spawn("xelatex", [
       "-interaction=nonstopmode",
+      "-synctex=-1",
       `-output-directory=${outDir}`,
       texPath,
     ], {
@@ -80,6 +81,7 @@ export function compileProjectStream(projectId: string): ReadableStream<Uint8Arr
 
       const proc = spawn("xelatex", [
         "-interaction=nonstopmode",
+        "-synctex=-1",
         `-output-directory=${outDir}`,
         texPath,
       ], {

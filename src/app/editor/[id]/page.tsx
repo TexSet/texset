@@ -14,6 +14,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+
+const EditorPane = dynamic(() => import("@/components/editor/EditorPane"), {
+  ssr: false,
+});
+const PreviewPane = dynamic(() => import("@/components/editor/PreviewPane"), {
+  ssr: false,
+});
 
 type CompileStatus = "idle" | "compiling" | "success" | "error";
 
@@ -32,7 +40,6 @@ export default function EditorPage() {
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
   const [saving, setSaving] = useState(false);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
   const sourceRef = useRef(source);
 
@@ -151,14 +158,6 @@ export default function EditorPage() {
     }, 2000);
   }
 
-  // track cursor position
-  function handleCursorChange(e: React.SyntheticEvent<HTMLTextAreaElement>) {
-    const textarea = e.currentTarget;
-    const text = textarea.value.substring(0, textarea.selectionStart);
-    const lines = text.split("\n");
-    setCursorPos({ line: lines.length, col: lines[lines.length - 1].length + 1 });
-  }
-
   // export pdf download
   function exportPdf() {
     if (pdfUrl) {
@@ -227,40 +226,20 @@ export default function EditorPage() {
       {/* editor + preview */}
       <div className="flex-1 flex min-h-0">
         {/* editor pane */}
-        <div className="w-1/2 flex flex-col border-r border-border min-h-0">
-          <textarea
-            ref={textareaRef}
+        <div className="w-1/2 flex flex-col border-r border-border min-h-0 bg-surface">
+          <EditorPane
             value={source}
-            onChange={(e) => handleSourceChange(e.target.value)}
-            onSelect={handleCursorChange}
-            onClick={handleCursorChange}
-            onKeyUp={handleCursorChange}
-            spellCheck={false}
-            className="flex-1 p-4 bg-surface font-mono text-sm text-text-primary resize-none
-                       focus:outline-none leading-relaxed overflow-auto"
-            placeholder="Start writing LaTeX..."
+            onChange={handleSourceChange}
+            onCursorChange={(line, col) => setCursorPos({ line, col })}
           />
         </div>
 
         {/* preview pane */}
         <div className="w-1/2 flex flex-col bg-surface-overlay min-h-0">
-          {pdfUrl ? (
-            <iframe
-              src={pdfUrl}
-              className="flex-1 w-full border-none"
-              title="PDF Preview"
-            />
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-text-muted">
-              <div className="text-center">
-                <Play size={32} className="mx-auto mb-3 opacity-30" />
-                <p className="text-sm">Hit Compile to see your document here</p>
-                <p className="text-xs mt-1 text-text-muted">
-                  Or just start typing — it will auto-compile in 2 seconds
-                </p>
-              </div>
-            </div>
-          )}
+          <PreviewPane
+            pdfUrl={pdfUrl}
+            compiling={compileStatus === "compiling"}
+          />
         </div>
       </div>
 

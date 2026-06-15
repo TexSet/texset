@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import * as pdfjs from "pdfjs-dist";
 import {
   ZoomIn,
@@ -20,19 +20,36 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 interface PreviewPaneProps {
   pdfUrl: string | null;
   compiling: boolean;
+  onSyncRequest?: (page: number, x: number, y: number) => void;
 }
 
-export default function PreviewPane({ pdfUrl, compiling }: PreviewPaneProps) {
+export interface PreviewPaneRef {
+  scrollToPoint: (page: number, x: number, y: number, w?: number, h?: number) => void;
+}
+
+const PreviewPane = forwardRef<PreviewPaneRef, PreviewPaneProps>(({ pdfUrl, compiling, onSyncRequest }, ref) => {
   const [pdf, setPdf] = useState<pdfjs.PDFDocumentProxy | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [numPages, setNumPages] = useState(0);
   const [scale, setScale] = useState(1.2);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const [highlight, setHighlight] = useState<{ page: number, x: number, y: number, w?: number, h?: number } | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const renderTaskRef = useRef<pdfjs.RenderTask | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const viewportRef = useRef<any>(null);
+
+  useImperativeHandle(ref, () => ({
+    scrollToPoint: (page, x, y, w, h) => {
+      setPageNumber(page);
+      setHighlight({ page, x, y, w, h });
+      setTimeout(() => setHighlight(null), 2000);
+    }
+  }));
 
   // Load PDF document when pdfUrl changes
   useEffect(() => {
@@ -95,6 +112,7 @@ export default function PreviewPane({ pdfUrl, compiling }: PreviewPaneProps) {
         // Adjust scale for Retina / high-DPI displays
         const dpr = window.devicePixelRatio || 1;
         const viewport = page.getViewport({ scale });
+        viewportRef.current = viewport;
 
         canvas.height = viewport.height * dpr;
         canvas.width = viewport.width * dpr;
@@ -137,6 +155,18 @@ export default function PreviewPane({ pdfUrl, compiling }: PreviewPaneProps) {
       }
     };
   }, [pdf, pageNumber, scale]);
+
+  // Effect to scroll to highlight when it changes or after render
+  useEffect(() => {
+    if (highlight && highlight.page === pageNumber && viewportRef.current && containerRef.current) {
+      const [left, top] = viewportRef.current.convertToViewportPoint(highlight.x, highlight.y);
+      containerRef.current.scrollTo({
+        left: left - containerRef.current.clientWidth / 2,
+        top: top - containerRef.current.clientHeight / 2,
+        behavior: "smooth"
+      });
+    }
+  }, [highlight, pageNumber, scale]);
 
   // Zoom helpers
   const zoomIn = () => setScale((s) => Math.min(s + 0.2, 3.0));
@@ -236,7 +266,30 @@ export default function PreviewPane({ pdfUrl, compiling }: PreviewPaneProps) {
           </div>
         ) : pdf ? (
           <div className="relative shadow-lg border border-border bg-white rounded-sm overflow-hidden mb-6">
-            <canvas ref={canvasRef} className="block" />
+            <canvas 
+              ref={canvasRef} 
+              className="block cursor-crosshair" 
+              onDoubleClick={(e) => {
+                if (!viewportRef.current || !onSyncRequest) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                const [pdfX, pdfY] = viewportRef.current.convertToPdfPoint(
+                  e.clientX - rect.left,
+                  e.clientY - rect.top
+                );
+                onSyncRequest(pageNumber, pdfX, pdfY);
+              }}
+            />
+            {highlight && highlight.page === pageNumber && viewportRef.current && (
+              <div 
+                className="absolute bg-accent/30 border-2 border-accent pointer-events-none transition-all animate-pulse"
+                style={{
+                  left: viewportRef.current.convertToViewportPoint(highlight.x, highlight.y)[0],
+                  top: viewportRef.current.convertToViewportPoint(highlight.x, highlight.y)[1] - (highlight.h ? highlight.h * scale : 15),
+                  width: highlight.w ? highlight.w * scale : 30,
+                  height: highlight.h ? highlight.h * scale : 20,
+                }}
+              />
+            )}
             {compiling && (
               <div className="absolute inset-0 bg-surface/50 backdrop-blur-[1px] flex items-center justify-center">
                 <div className="bg-surface-raised/90 border border-border px-3 py-1.5 rounded-md shadow-md flex items-center gap-2">
@@ -264,4 +317,8 @@ export default function PreviewPane({ pdfUrl, compiling }: PreviewPaneProps) {
       </div>
     </div>
   );
-}
+});
+
+PreviewPane.displayName = "PreviewPane";
+
+export default PreviewPane;

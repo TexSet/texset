@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { EditorView, basicSetup } from "codemirror";
 import { latex } from "codemirror-lang-latex";
 import { EditorState } from "@codemirror/state";
@@ -75,19 +75,40 @@ interface EditorPaneProps {
   value: string;
   onChange: (value: string) => void;
   onCursorChange?: (line: number, col: number) => void;
+  onSyncRequest?: (line: number) => void;
 }
 
-export default function EditorPane({ value, onChange, onCursorChange }: EditorPaneProps) {
+export interface EditorPaneRef {
+  scrollToLine: (line: number) => void;
+}
+
+const EditorPane = forwardRef<EditorPaneRef, EditorPaneProps>(({ value, onChange, onCursorChange, onSyncRequest }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   const onCursorChangeRef = useRef(onCursorChange);
+  const onSyncRequestRef = useRef(onSyncRequest);
 
-  // Sync callbacks to avoid recreation of the state listener
   useEffect(() => {
     onChangeRef.current = onChange;
     onCursorChangeRef.current = onCursorChange;
-  }, [onChange, onCursorChange]);
+    onSyncRequestRef.current = onSyncRequest;
+  }, [onChange, onCursorChange, onSyncRequest]);
+
+  useImperativeHandle(ref, () => ({
+    scrollToLine: (line: number) => {
+      const view = viewRef.current;
+      if (!view) return;
+      const doc = view.state.doc;
+      const targetLine = Math.max(1, Math.min(line, doc.lines));
+      const lineObj = doc.line(targetLine);
+      view.dispatch({
+        selection: { anchor: lineObj.from },
+        effects: EditorView.scrollIntoView(lineObj.from, { y: "center" })
+      });
+      view.focus();
+    }
+  }));
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -104,6 +125,19 @@ export default function EditorPane({ value, onChange, onCursorChange }: EditorPa
       }
     });
 
+    const domHandlers = EditorView.domEventHandlers({
+      click(event, view) {
+        if (event.metaKey || event.ctrlKey) {
+          event.preventDefault();
+          const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+          if (pos !== null) {
+            const line = view.state.doc.lineAt(pos);
+            onSyncRequestRef.current?.(line.number);
+          }
+        }
+      }
+    });
+
     const startState = EditorState.create({
       doc: value,
       extensions: [
@@ -112,6 +146,7 @@ export default function EditorPane({ value, onChange, onCursorChange }: EditorPa
         syntaxHighlighting(texsetHighlightStyle),
         texsetEditorTheme,
         updateListener,
+        domHandlers,
         keymap.of([indentWithTab]),
       ],
     });
@@ -146,4 +181,8 @@ export default function EditorPane({ value, onChange, onCursorChange }: EditorPa
       className="flex-1 h-full min-h-0 border-none focus:outline-none"
     />
   );
-}
+});
+
+EditorPane.displayName = "EditorPane";
+
+export default EditorPane;

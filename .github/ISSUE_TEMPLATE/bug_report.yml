@@ -1,82 +1,47 @@
-name: Bug Report
-description: Report a bug or unexpected behavior
-title: "bug: "
-labels: [bug]
+name: Bug report
+description: Something isn't working the way it should
+labels: ["bug"]
 body:
-  - type: dropdown
-    id: severity
+  - type: markdown
     attributes:
-      label: Severity
-      description: How severe is this bug?
-      options:
-        - Critical
-        - High
-        - Medium
-        - Low
+      value: Thanks for taking the time to file a report. The more detail, the faster we can fix it.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Describe the bug and what you expected instead.
+      placeholder: When I click compile, the preview stays blank...
     validations:
       required: true
-
-  - type: dropdown
-    id: os
-    attributes:
-      label: Operating System
-      description: Which OS are you running TexSet on?
-      options:
-        - macOS
-        - Linux
-        - Windows
-    validations:
-      required: true
-
-  - type: input
-    id: version
-    attributes:
-      label: TexSet Version
-      description: The version of TexSet you are using (e.g. 0.1.0).
-      placeholder: "0.1.0"
-    validations:
-      required: true
-
   - type: textarea
     id: steps
     attributes:
-      label: Steps to Reproduce
-      description: Walk us through exactly how to trigger this bug.
+      label: Steps to reproduce
       placeholder: |
-        1. Go to ...
-        2. Click on ...
-        3. See error
+        1. Create a new project from the article template
+        2. Add an \includegraphics line
+        3. Compile
     validations:
       required: true
-
-  - type: textarea
-    id: expected
+  - type: input
+    id: os
     attributes:
-      label: Expected Behavior
-      description: What did you expect to happen?
+      label: Operating system
+      placeholder: macOS 15, Ubuntu 24.04, Windows 11...
     validations:
-      required: false
-
-  - type: textarea
-    id: actual
+      required: true
+  - type: dropdown
+    id: install
     attributes:
-      label: Actual Behavior
-      description: What actually happened?
-    validations:
-      required: false
-
-  - type: textarea
-    id: screenshots
-    attributes:
-      label: Screenshots
-      description: If applicable, attach screenshots to help explain the problem.
-    validations:
-      required: false
-
-  - type: checkboxes
-    id: searched
-    attributes:
-      label: Duplicate Check
+      label: How are you running TexSet
       options:
-        - label: I have searched existing issues
-          required: true
+        - Docker (docker compose up)
+        - Local dev (pnpm dev)
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Compile log or console output
+      description: Paste anything relevant. It will be rendered as code automatically.
+      render: shell

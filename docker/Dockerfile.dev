@@ -1,24 +1,33 @@
-# Development image: deps are baked in, source code is bind-mounted
+# Development image: same TeX Live runtime as production, but runs the Next dev
+# server with hot reload. Source is bind-mounted from the host via compose, so
+# edits on your machine show up instantly.
+
 FROM node:20-bookworm-slim
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-       texlive-xetex \
-       texlive-fonts-recommended \
-       texlive-latex-extra \
-       fontconfig \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN corepack enable && corepack prepare pnpm@latest --activate
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# build toolchain for better-sqlite3, plus xelatex for compiling documents
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ \
+    texlive-xetex \
+    texlive-latex-recommended \
+    texlive-latex-extra \
+    texlive-fonts-recommended \
+    lmodern \
+    fontconfig \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=7474
+ENV TEXSET_DATA_DIR=/app/projects
+
+COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
-# Source code comes in via bind mounts, so we don't COPY it here.
-# Just need the node_modules and TeX Live ready to go.
+COPY . .
 
 EXPOSE 7474
-
-CMD ["pnpm", "dev", "--port", "7474"]
+CMD ["pnpm", "dev"]

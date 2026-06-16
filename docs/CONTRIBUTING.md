@@ -1,114 +1,62 @@
-# Contributing to TexSet
+# Contributing
 
-Thanks for your interest in contributing. This guide covers the workflow and conventions we follow.
+Glad to have you. This is a small, focused project and we'd like to keep it that
+way, so a few conventions go a long way.
 
-## Prerequisites
-
-- Node.js 20+
-- pnpm
-- Docker (for container-based development and testing)
-
-## Getting Started
-
-1. Fork the repo on GitHub.
-2. Clone your fork:
-
-```bash
-git clone https://github.com/<your-username>/texset.git
-cd texset
-```
-
-3. Install dependencies:
+## Setup
 
 ```bash
 pnpm install
-```
-
-4. Start the dev server:
-
-```bash
 pnpm dev
 ```
 
-5. Open [http://localhost:7474](http://localhost:7474).
-
-To run with Docker instead:
+You'll need Node.js 20+ and pnpm. For compiling documents you also need
+`xelatex` on your `PATH`, or use the Docker dev setup which bundles TeX Live:
 
 ```bash
 docker compose -f docker-compose.dev.yml up
 ```
 
-## Branch Naming
+## Branching and pull requests
 
-Create branches off `main` using the following prefixes:
+`main` is always deployable. Don't commit to it directly; branch off it instead.
 
-| Prefix   | Use case                  |
-| -------- | ------------------------- |
-| `feat/`  | New features              |
-| `fix/`   | Bug fixes                 |
-| `docs/`  | Documentation changes     |
-| `chore/` | Tooling, deps, CI, etc.   |
+1. Make sure your `main` is current before branching, so your PR merges cleanly:
+   ```bash
+   git checkout main
+   git pull origin main
+   git checkout -b feat/short-description
+   ```
+2. Use a descriptive branch name with a type prefix: `feat/`, `fix/`, `docs/`,
+   `refactor/`, `chore/`.
+3. Open a pull request against `main`. The template will prompt you for what
+   changed, how you tested it, and a short checklist.
+4. CI runs lint, typecheck, and build on every PR. Keep it green.
 
-Examples: `feat/template-gallery`, `fix/pdf-render-crash`, `docs/update-readme`.
+## Commits
 
-## Commit Messages
-
-We use conventional commits. The format is:
-
-```
-<type>: <short description>
-```
-
-Types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `style`.
-
-Examples:
+Short, present-tense, descriptive. Conventional Commits style is encouraged:
 
 ```
-feat: add template gallery page
-fix: prevent double compilation on rapid keystrokes
-docs: add self-hosting guide
-chore: bump next.js to 14.2
+feat: add letter template
+fix: handle missing main.tex on compile
+docs: explain the engine abstraction
 ```
 
-Keep the subject line under 72 characters. Use the body for context when the subject alone isn't enough.
+## Code style
 
-## Submitting a Pull Request
+- Everything in the codebase is American English: code, comments, identifiers,
+  UI strings. (Issues and discussion can be in whatever language works for you.)
+- Comments explain *why*, in a normal human voice. Skip decorative banners.
+- TypeScript runs in strict mode. `pnpm typecheck` should pass.
+- Prefer small, reviewable PRs over large ones.
 
-1. Push your branch to your fork.
-2. Open a PR against `main` on the upstream repo.
-3. In the PR description:
-   - Describe what you changed and why.
-   - Reference related issues (e.g., `Closes #42`).
-   - Include screenshots if the change is visual.
-4. Make sure linting passes:
+## Before you push
 
 ```bash
 pnpm lint
+pnpm typecheck
+pnpm build
 ```
 
-PRs are reviewed before merging. Small, focused PRs are easier to review and land faster.
-
-## Code Style
-
-- TypeScript in strict mode. No `any` unless absolutely unavoidable (and if so, leave a comment explaining why).
-- Use natural, concise comments. Write them like a human developer, not a textbook.
-- No decorative comment separators (`// ====`, `// ----`, etc.).
-- Prefer named exports. Default exports only for pages and layouts (Next.js convention).
-- Use Tailwind utility classes for styling. Avoid inline styles.
-
-## Project Structure
-
-```
-src/
-  app/           # Next.js App Router pages and layouts
-    api/         # API route handlers
-  components/    # React components
-  lib/           # Shared utilities and helpers
-  db/            # SQLite database access
-public/          # Static assets
-docs/            # Project documentation
-```
-
-## Questions?
-
-Open an issue or start a discussion on GitHub. We're happy to help.
+If all three pass, you're good to open the PR.

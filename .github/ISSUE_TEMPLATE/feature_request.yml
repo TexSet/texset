@@ -1,37 +1,22 @@
-name: Feature Request
-description: Suggest a new feature or improvement
-title: "feat: "
-labels: [enhancement]
+name: Feature request
+description: Suggest an idea or improvement
+labels: ["enhancement"]
 body:
   - type: textarea
-    id: motivation
+    id: problem
     attributes:
-      label: Problem or Motivation
-      description: What problem does this feature solve? Why should it exist?
-      placeholder: Describe the problem or use case that motivates this request.
+      label: What problem does this solve
+      description: What are you trying to do that TexSet makes hard today?
     validations:
       required: true
-
   - type: textarea
-    id: solution
+    id: proposal
     attributes:
-      label: Proposed Solution
-      description: How do you think this should work?
+      label: Proposed solution
+      description: How do you imagine it working?
     validations:
-      required: false
-
+      required: true
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives Considered
-      description: Have you considered any alternative approaches or workarounds?
-    validations:
-      required: false
-
-  - type: checkboxes
-    id: willing
-    attributes:
-      label: Contribution
-      options:
-        - label: I am willing to help implement this
-          required: false
+      label: Alternatives you considered

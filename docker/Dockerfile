@@ -1,41 +1,57 @@
-# Stage 1: build the Next.js standalone output
-FROM node:20-bookworm-slim AS builder
+# Multi-stage build. We compile the app and the better-sqlite3 native module in
+# a builder stage that has the toolchain, then ship a lean runtime that only
+# carries Node, TeX Live, and the standalone server output.
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+FROM node:20-bookworm-slim AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
 
+# install dependencies (needs a C++ toolchain to build better-sqlite3)
+FROM base AS deps
 WORKDIR /app
-
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
+# build the next.js standalone output
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build
 
-# Stage 2: production runtime with TeX Live
-FROM node:20-bookworm-slim AS runtime
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-       texlive-xetex \
-       texlive-fonts-recommended \
-       texlive-latex-extra \
-       fontconfig \
-    && rm -rf /var/lib/apt/lists/*
-
+# runtime image: Node + TeX Live (xelatex) + the built app
+FROM node:20-bookworm-slim AS runner
 WORKDIR /app
 
-# Copy the standalone server and static assets from the build stage
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+# xelatex and the package sets our starter templates rely on. --no-install-recommends
+# keeps the image from ballooning with docs and language packs we don't need.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    texlive-xetex \
+    texlive-latex-recommended \
+    texlive-latex-extra \
+    texlive-fonts-recommended \
+    lmodern \
+    fontconfig \
+    && rm -rf /var/lib/apt/lists/*
 
-# This will be bind-mounted in production, but we create it so the
-# container can start even without a mount.
-RUN mkdir -p /app/projects
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=7474
+ENV TEXSET_DATA_DIR=/app/projects
+
+# run as the non-root user that ships with the node image
+RUN mkdir -p /app/projects && chown -R node:node /app
+USER node
+
+# standalone output bundles the server and its node_modules (better-sqlite3 included)
+COPY --chown=node:node --from=builder /app/.next/standalone ./
+COPY --chown=node:node --from=builder /app/.next/static ./.next/static
+COPY --chown=node:node --from=builder /app/public ./public
 
 EXPOSE 7474
-
-ENV PORT=7474
-ENV HOSTNAME=0.0.0.0
-
 CMD ["node", "server.js"]

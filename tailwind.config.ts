@@ -1,78 +1,54 @@
 import type { Config } from "tailwindcss";
 
+// colors are driven by CSS variables defined in globals.css. the channels are
+// stored as raw "R G B" triples so tailwind can still apply opacity modifiers
+// like bg-accent/20. the accent swaps per document engine (green for LaTeX,
+// blue for Typst later) just by changing the variable on a parent element.
+function withAlpha(variable: string) {
+  return `rgb(var(${variable}) / <alpha-value>)`;
+}
+
 const config: Config = {
-  content: [
-    "./src/app/**/*.{ts,tsx}",
-    "./src/components/**/*.{ts,tsx}",
-    "./src/lib/**/*.{ts,tsx}",
-  ],
-  darkMode: "class",
+  content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        surface: {
-          DEFAULT: "hsl(var(--surface))",
-          raised: "hsl(var(--surface-raised))",
-          overlay: "hsl(var(--surface-overlay))",
-        },
-        border: {
-          DEFAULT: "hsl(var(--border))",
-          subtle: "hsl(var(--border-subtle))",
-        },
+        bg: withAlpha("--color-bg"),
+        surface: withAlpha("--color-surface"),
+        "surface-2": withAlpha("--color-surface-2"),
+        border: withAlpha("--color-border"),
         text: {
-          primary: "hsl(var(--text-primary))",
-          secondary: "hsl(var(--text-secondary))",
-          muted: "hsl(var(--text-muted))",
+          DEFAULT: withAlpha("--color-text"),
+          muted: withAlpha("--color-text-muted"),
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          hover: "hsl(var(--accent-hover))",
-          muted: "hsl(var(--accent-muted))",
+          DEFAULT: withAlpha("--color-accent"),
+          fg: withAlpha("--color-accent-fg"),
+          soft: withAlpha("--color-accent-soft"),
         },
-        success: "hsl(var(--success))",
-        warning: "hsl(var(--warning))",
-        error: "hsl(var(--error))",
+        danger: withAlpha("--color-danger"),
       },
       fontFamily: {
-        sans: ["var(--font-sans)"],
-        mono: ["var(--font-mono)"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       borderRadius: {
-        DEFAULT: "var(--radius)",
-        lg: "var(--radius-lg)",
-        xl: "var(--radius-xl)",
+        lg: "12px",
+        xl: "16px",
+        "2xl": "20px",
       },
       boxShadow: {
-        glass: "0 4px 30px rgba(0, 0, 0, 0.06)",
-        "glass-lg": "0 8px 40px rgba(0, 0, 0, 0.1)",
-        glow: "0 0 20px hsl(var(--accent) / 0.15)",
-      },
-      backdropBlur: {
-        glass: "16px",
-      },
-      animation: {
-        "fade-in": "fadeIn 0.2s ease-out",
-        "slide-up": "slideUp 0.3s ease-out",
-        "slide-down": "slideDown 0.2s ease-out",
-        shimmer: "shimmer 2s infinite linear",
+        soft: "0 1px 2px rgb(0 0 0 / 0.04), 0 4px 16px rgb(0 0 0 / 0.06)",
+        lift: "0 8px 30px rgb(0 0 0 / 0.10)",
       },
       keyframes: {
-        fadeIn: {
-          from: { opacity: "0" },
-          to: { opacity: "1" },
-        },
-        slideUp: {
-          from: { opacity: "0", transform: "translateY(8px)" },
+        "fade-in": {
+          from: { opacity: "0", transform: "translateY(4px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
-        slideDown: {
-          from: { opacity: "0", transform: "translateY(-4px)" },
-          to: { opacity: "1", transform: "translateY(0)" },
-        },
-        shimmer: {
-          from: { backgroundPosition: "-200% 0" },
-          to: { backgroundPosition: "200% 0" },
-        },
+      },
+      animation: {
+        "fade-in": "fade-in 0.25s ease-out",
       },
     },
   },

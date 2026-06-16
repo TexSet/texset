@@ -1,14 +1,18 @@
+# Production-style setup: builds the image and serves it on http://localhost:7474.
+# Your documents land in ./projects on the host thanks to the bind mount, so the
+# data is yours and survives container rebuilds.
+
 services:
   texset:
     build:
       context: .
       dockerfile: docker/Dockerfile
+    container_name: texset
     ports:
-      - '7474:7474'
+      - "7474:7474"
     volumes:
       - ./projects:/app/projects
     environment:
+      - TEXSET_DATA_DIR=/app/projects
       - PORT=7474
-      - TEXSET_PROJECTS_DIR=/app/projects
-    user: '${UID:-1000}:${GID:-1000}'
     restart: unless-stopped

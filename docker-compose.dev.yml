@@ -1,23 +1,20 @@
+# Development setup with hot reload. The source tree is mounted into the
+# container, while node_modules and .next stay inside it so host and container
+# don't fight over platform-specific files.
+
 services:
-  texset:
+  texset-dev:
     build:
       context: .
       dockerfile: docker/Dockerfile.dev
+    container_name: texset-dev
     ports:
-      - '7474:7474'
+      - "7474:7474"
     volumes:
-      - ./src:/app/src
-      - ./public:/app/public
-      - ./package.json:/app/package.json
-      - ./pnpm-lock.yaml:/app/pnpm-lock.yaml
-      - ./tsconfig.json:/app/tsconfig.json
-      - ./next.config.ts:/app/next.config.ts
-      - ./tailwind.config.ts:/app/tailwind.config.ts
-      - ./postcss.config.mjs:/app/postcss.config.mjs
-      - ./eslint.config.mjs:/app/eslint.config.mjs
-      - ./projects:/app/projects
+      - .:/app
+      - /app/node_modules
+      - /app/.next
     environment:
+      - TEXSET_DATA_DIR=/app/projects
       - PORT=7474
-      - TEXSET_PROJECTS_DIR=/app/projects
-    user: '${UID:-1000}:${GID:-1000}'
-    restart: unless-stopped
+      - WATCHPACK_POLLING=true

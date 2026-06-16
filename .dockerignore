@@ -1,7 +1,11 @@
 node_modules
 .next
 .git
-projects/
-*.md
-.env*
-.gitignore
+projects
+*.db
+*.sqlite
+.env
+.env*.local
+*.log
+.DS_Store
+docs

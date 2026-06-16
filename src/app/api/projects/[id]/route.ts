@@ -4,6 +4,7 @@ import {
   getProjectWithSource,
   renameProject,
   saveSource,
+  setPinned,
   touchProject,
 } from "@/lib/projects";
 
@@ -27,9 +28,10 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const hasSource = typeof body.source === "string";
   const hasName = typeof body.name === "string";
-  if (!hasSource && !hasName) {
+  const hasPinned = typeof body.pinned === "boolean";
+  if (!hasSource && !hasName && !hasPinned) {
     return NextResponse.json(
-      { error: "Provide a name or source to update" },
+      { error: "Provide a name, source, or pinned flag to update" },
       { status: 400 },
     );
   }
@@ -37,6 +39,7 @@ export async function PATCH(request: Request, { params }: Params) {
   let project = null;
   if (hasSource) project = saveSource(params.id, body.source);
   if (hasName) project = renameProject(params.id, body.name);
+  if (hasPinned) project = setPinned(params.id, body.pinned);
 
   if (!project) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });

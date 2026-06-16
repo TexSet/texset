@@ -17,6 +17,11 @@ export function formatRelativeTime(timestamp: number): string {
   const weeks = Math.round(days / 7);
   if (weeks < 5) return `${weeks} week${weeks === 1 ? "" : "s"} ago`;
 
+  return formatDate(timestamp);
+}
+
+// a plain "Jun 15, 2025" date
+export function formatDate(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",

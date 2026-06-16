@@ -2,7 +2,7 @@ import { listProjects } from "@/lib/projects";
 import { templates } from "@/lib/templates";
 import { NewProjectButton } from "@/components/dashboard/NewProjectButton";
 import { TemplateGrid } from "@/components/dashboard/TemplateGrid";
-import { RecentsList } from "@/components/dashboard/RecentsList";
+import { ProjectsGallery } from "@/components/dashboard/ProjectsGallery";
 
 // the dashboard reads straight from the data layer on the server, so there's no
 // client-side loading spinner on first paint
@@ -37,8 +37,8 @@ export default function DashboardPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-sm font-medium text-text-muted">Recent</h2>
-          <RecentsList projects={projects} />
+          <h2 className="text-sm font-medium text-text-muted">My projects</h2>
+          <ProjectsGallery initialProjects={projects} />
         </section>
       </main>
     </div>

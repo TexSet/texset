@@ -19,6 +19,7 @@ export interface Project {
   name: string;
   engine: EngineId;
   template: string | null;
+  pinned: boolean;
   createdAt: number;
   updatedAt: number;
   lastOpenedAt: number | null;
@@ -34,6 +35,7 @@ interface ProjectRow {
   name: string;
   engine: string;
   template: string | null;
+  pinned: number;
   created_at: number;
   updated_at: number;
   last_opened_at: number | null;
@@ -45,6 +47,7 @@ function toProject(row: ProjectRow): Project {
     name: row.name,
     engine: isEngineId(row.engine) ? row.engine : DEFAULT_ENGINE,
     template: row.template,
+    pinned: row.pinned === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     lastOpenedAt: row.last_opened_at,
@@ -89,6 +92,7 @@ export function createProject(input: CreateProjectInput = {}): Project {
     name,
     engine: engineId,
     template: template?.id ?? null,
+    pinned: 0,
     created_at: now,
     updated_at: now,
     last_opened_at: null,
@@ -96,9 +100,11 @@ export function createProject(input: CreateProjectInput = {}): Project {
 }
 
 export function listProjects(): Project[] {
+  // pinned projects float to the top, then most recently opened or edited first
   const rows = getDb()
     .prepare(
-      `SELECT * FROM projects ORDER BY COALESCE(last_opened_at, updated_at) DESC`,
+      `SELECT * FROM projects
+       ORDER BY pinned DESC, COALESCE(last_opened_at, updated_at) DESC`,
     )
     .all() as ProjectRow[];
   return rows.map(toProject);
@@ -133,6 +139,15 @@ export function saveSource(id: string, content: string): Project | null {
   getDb()
     .prepare(`UPDATE projects SET updated_at = ? WHERE id = ?`)
     .run(Date.now(), id);
+  return getProject(id);
+}
+
+export function setPinned(id: string, pinned: boolean): Project | null {
+  const project = getProject(id);
+  if (!project) return null;
+  getDb()
+    .prepare(`UPDATE projects SET pinned = ? WHERE id = ?`)
+    .run(pinned ? 1 : 0, id);
   return getProject(id);
 }
 

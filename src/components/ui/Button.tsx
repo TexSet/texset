@@ -4,7 +4,7 @@ import { clsx } from "clsx";
 import type { ButtonHTMLAttributes } from "react";
 import type { LucideIcon } from "lucide-react";
 
-type Variant = "primary" | "secondary" | "ghost";
+type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -18,6 +18,7 @@ const variants: Record<Variant, string> = {
   primary: "bg-accent text-accent-fg hover:brightness-105 active:brightness-95 shadow-soft",
   secondary: "bg-surface text-text border border-border hover:bg-surface-2",
   ghost: "text-text hover:bg-surface-2",
+  danger: "bg-danger text-white hover:brightness-105 active:brightness-95 shadow-soft",
 };
 
 const sizes: Record<Size, string> = {

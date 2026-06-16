@@ -23,13 +23,25 @@ function init(): Database.Database {
       name TEXT NOT NULL,
       engine TEXT NOT NULL DEFAULT 'latex',
       template TEXT,
+      pinned INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
       last_opened_at INTEGER
     );
   `);
 
+  migrate(db);
   return db;
+}
+
+// small forward-only migrations for databases created by earlier versions
+function migrate(db: Database.Database): void {
+  const columns = db.prepare(`PRAGMA table_info(projects)`).all() as {
+    name: string;
+  }[];
+  if (!columns.some((column) => column.name === "pinned")) {
+    db.exec(`ALTER TABLE projects ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0`);
+  }
 }
 
 export function getDb(): Database.Database {

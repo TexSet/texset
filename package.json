@@ -12,8 +12,8 @@
     "onlyBuiltDependencies": ["better-sqlite3"]
   },
   "scripts": {
-    "dev": "next dev -p 7474",
-    "build": "next build",
+    "dev": "node scripts/setup-pdf-worker.mjs && next dev -p 7474",
+    "build": "node scripts/setup-pdf-worker.mjs && next build",
     "start": "next start -p 7474",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"

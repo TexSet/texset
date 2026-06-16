@@ -42,6 +42,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=7474
+# bind to all interfaces so the published port reaches the standalone server
+ENV HOSTNAME=0.0.0.0
 ENV TEXSET_DATA_DIR=/app/projects
 
 # run as the non-root user that ships with the node image

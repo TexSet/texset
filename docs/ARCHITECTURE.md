@@ -1,107 +1,66 @@
 # Architecture
 
-This document describes how TexSet is built and why certain decisions were made.
+A tour of how TexSet is put together and why. The guiding ideas are: keep
+everything local, keep it fast, and keep the door open for more than just LaTeX.
 
-## Overview
+## The big picture
 
-TexSet is a full-stack Next.js application using the App Router. The frontend and backend live in the same codebase -- React components handle the UI, and API route handlers manage compilation, file storage, and metadata.
-
-Everything runs in a single Docker container. There's no separate database server, no message queue, no external services. The goal is a single `docker compose up` to get a working LaTeX editor.
-
-## Services Diagram
-
-```
-+------------------+       +-----------------------------------+
-|                  |       |          Next.js Server            |
-|     Browser      | <---> |                                   |
-|                  |       |   React UI    |    API Routes      |
-|  - CodeMirror    |  HTTP |   (App Router)|   (/api/*)        |
-|  - pdf.js        | <---> |              |                    |
-|                  |       +--------------+--------------------+
-+------------------+              |              |
-                                  v              v
-                           +----------+   +------------+
-                           |  SQLite  |   | Filesystem |
-                           | (metadata)|  | (.tex, PDF)|
-                           +----------+   +------------+
-                                                |
-                                                v
-                                         +-----------+
-                                         |  xelatex  |
-                                         | (TeX Live)|
-                                         +-----------+
-```
-
-## Directory Structure
+TexSet is a single Next.js application. The browser runs the editor and PDF
+viewer; the server compiles documents and stores files. There's no separate
+backend service and no message queue. Compilation is just a child process the
+server spawns when you ask for a build.
 
 ```
-src/
-  app/
-    api/
-      compile/       # POST handler -- spawns xelatex, streams output
-      projects/      # CRUD for project metadata
-      templates/     # Template listing and creation
-    editor/          # Editor page (CodeMirror + preview pane)
-    gallery/         # Template gallery page
-    layout.tsx       # Root layout
-    page.tsx         # Landing / project list
-  components/
-    Editor.tsx       # CodeMirror wrapper
-    PdfViewer.tsx    # pdf.js wrapper
-    Toolbar.tsx      # Editor toolbar (compile, download, etc.)
-  lib/
-    compiler.ts      # xelatex process management
-    db.ts            # SQLite connection and queries
-    storage.ts       # File read/write helpers
-  db/
-    schema.sql       # Database schema
-    migrations/      # Schema migrations
-public/              # Static assets (logos, icons)
-docs/                # Project documentation
-projects/            # User project files (bind-mounted in Docker)
+browser (CodeMirror + pdf.js)
+        |
+        |  fetch / SSE
+        v
+Next.js server (App Router, API routes)
+        |
+        +-- SQLite index (project metadata)
+        +-- filesystem (sources + compiled PDFs)
+        +-- xelatex child process (compilation)
 ```
 
-## Compilation Data Flow
+## Where data lives
 
-Here's what happens when a user compiles a document:
+Everything sits under one data directory (`TEXSET_DATA_DIR`, defaults to
+`./projects`):
 
-```
-1. User types in CodeMirror editor
-2. Input is debounced (~500ms after last keystroke)
-3. Frontend sends POST /api/compile with project ID and .tex content
-4. API route writes the .tex file to disk
-5. API route spawns xelatex as a child process
-6. Compilation output is streamed back via SSE (Server-Sent Events)
-7. On success, the generated PDF path is sent in the final SSE event
-8. Frontend fetches the PDF and renders it with pdf.js
-```
+- `texset.db` is a SQLite database holding the project index: names, templates,
+  timestamps. It's metadata only, so it stays small and quick.
+- Each project gets its own folder named by id, containing the `.tex` sources
+  and an `output/` directory for the compiled PDF, logs, and synctex data.
 
-The compilation is intentionally synchronous per-project -- only one xelatex process runs per project at a time. If a new compilation request arrives while one is in progress, the running process is killed and replaced.
+Keeping sources on the plain filesystem means your work is portable and easy to
+back up. In Docker the data directory is a bind mount, so the same files show up
+on the host.
 
-## Storage
+## The engine abstraction
 
-**SQLite** stores project metadata:
-- Project ID, name, creation date, last modified
-- Template associations
-- Compilation status and error logs
+TexSet is built to compile more than LaTeX. A document belongs to an *engine*,
+and an engine knows three things: how to highlight its source, how to compile
+it, and what accent color represents it in the UI. LaTeX (xelatex, green) is the
+only engine today. Typst (blue) is the planned second one.
 
-**Filesystem** stores the actual files:
-- `.tex` source files
-- Generated `.pdf` files
-- xelatex auxiliary files (`.aux`, `.log`, `.toc`, etc.)
+Because the compiler is selected through this abstraction rather than hardcoded,
+adding an engine is mostly: implement its compile step, register its editor
+language, and pick a color. The rest of the app doesn't need to know which
+engine it's dealing with.
 
-All project files live under `./projects/`, which is bind-mounted into the Docker container at `/app/projects`. This makes backups straightforward -- just copy the directory.
+## Compilation
 
-## Design Decisions
+When you compile, the server spawns `xelatex` in the project directory and
+streams its output back to the browser over Server-Sent Events, so you see the
+log as it happens. The editor also auto-compiles on a short debounce after you
+stop typing, with a manual compile button for when you want to force a build.
 
-### Why SQLite over Postgres?
+We deliberately avoid a job queue like BullMQ. For a single-user local tool it's
+overhead we don't need; a spawned process plus an event stream is simpler and
+faster.
 
-TexSet is a single-user application. There's no concurrent write contention, no need for replication, and no reason to run a separate database server. SQLite is embedded, requires zero configuration, and the database file lives alongside the project files. One fewer thing to set up, one fewer thing to break.
+## Frontend
 
-### Why SSE over WebSocket?
-
-Compilation output is unidirectional -- the server sends log lines to the client. SSE is a natural fit for this pattern. It's simpler than WebSocket, works over standard HTTP, and doesn't require special proxy configuration. The connection is opened for the duration of a single compilation and then closed.
-
-### Why xelatex?
-
-xelatex supports Unicode natively and can use system fonts without extra configuration. For a self-hosted editor where users might write in any language, this matters. pdflatex would require font encoding packages for anything beyond ASCII. LuaLaTeX is an alternative, but xelatex has broader adoption and faster compilation for most documents.
+The editor is CodeMirror 6. The PDF preview is pdf.js rendering to a canvas.
+Styling is Tailwind v3 with a small set of design tokens defined as CSS
+variables, which is also how the per-engine accent and (later) dark mode work.

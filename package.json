@@ -2,45 +2,49 @@
   "name": "texset",
   "version": "0.1.0",
   "private": true,
+  "description": "A fast, local-first LaTeX editor that runs in your browser.",
+  "license": "MIT",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["better-sqlite3"]
+  },
   "scripts": {
-    "dev": "next dev --port 7474",
+    "dev": "next dev -p 7474",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
+    "start": "next start -p 7474",
+    "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@codemirror/commands": "^6.10.3",
-    "@codemirror/language": "^6.12.3",
-    "@codemirror/state": "^6.6.0",
-    "@codemirror/view": "^6.43.1",
-    "@lezer/highlight": "^1.2.3",
-    "autoprefixer": "^10.5.0",
-    "better-sqlite3": "^12.10.1",
-    "codemirror": "^6.0.2",
-    "codemirror-lang-latex": "^0.4.1",
-    "lucide-react": "^1.18.0",
-    "nanoid": "^5.1.11",
-    "next": "16.2.9",
-    "pdfjs-dist": "^6.0.227",
-    "postcss": "^8.5.15",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "tailwindcss": "^3.4.19",
-    "zustand": "^5.0.14"
+    "@codemirror/autocomplete": "^6.18.1",
+    "@codemirror/commands": "^6.7.1",
+    "@codemirror/language": "^6.10.3",
+    "@codemirror/legacy-modes": "^6.4.1",
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/view": "^6.34.1",
+    "@uiw/react-codemirror": "^4.23.6",
+    "better-sqlite3": "^11.5.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.456.0",
+    "nanoid": "^5.0.8",
+    "next": "^14.2.15",
+    "pdfjs-dist": "^4.7.76",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.9",
-    "typescript": "^5"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "better-sqlite3"
-    ]
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^20.16.13",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.15",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.6.3"
   }
 }

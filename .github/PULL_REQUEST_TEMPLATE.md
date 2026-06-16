@@ -1,26 +1,18 @@
-## Description
+## What this changes
 
-Briefly describe what this PR does and why.
+<!-- A short summary of the change and why it's needed. -->
 
-## Changes Made
+## Related issues
 
-- [ ] Change 1
-- [ ] Change 2
+<!-- e.g. Closes #12 -->
 
-## Type of Change
+## How I tested it
 
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Documentation
-- [ ] Refactor
-
-## Testing
-
-Describe what you tested and how. Include relevant details about your test environment if applicable.
+<!-- Steps you ran, or "compiled the article template and checked the preview". -->
 
 ## Checklist
 
-- [ ] Lint passes (`pnpm run lint`)
-- [ ] Typecheck passes (`pnpm run typecheck`)
-- [ ] Code follows existing conventions
-- [ ] Documentation updated (if needed)
+- [ ] `pnpm lint` and `pnpm typecheck` pass
+- [ ] The app builds (`pnpm build`)
+- [ ] Code and comments are in English
+- [ ] No unrelated changes bundled in

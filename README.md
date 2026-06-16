@@ -1,8 +1,26 @@
-# TexSet
+<div align="center">
+  <img src="public/TexSet.svg" alt="TexSet" width="72" height="72" />
+  <h1>TexSet</h1>
+  <p>A fast, local-first LaTeX editor that runs in your browser.</p>
+</div>
 
-A fast, self-hosted LaTeX editor. Write, compile, and preview LaTeX documents from your browser -- no installs, no accounts, no cloud dependency.
+TexSet is an Overleaf-style editor you run yourself. Write LaTeX on the left,
+watch the PDF build on the right. Everything happens on your machine: no
+accounts, no external APIs, no cloud. Your documents are just files in a folder
+you control.
 
-## Quick Start
+It's built to be modular. Today it compiles LaTeX with xelatex; the editor and
+compiler are wired through an engine abstraction so Typst support can drop in
+later without reworking the app. The accent color even follows the document type
+(green for LaTeX) so you always know what you're editing.
+
+> **Status:** active development. The foundation is in place and features are
+> landing branch by branch.
+
+## Running it
+
+The quickest way is Docker, which bundles Node and a TeX Live install so you
+don't have to set up a LaTeX toolchain yourself.
 
 ```bash
 git clone https://github.com/texset/texset.git
@@ -10,62 +28,47 @@ cd texset
 docker compose up --build
 ```
 
-Open [http://localhost:7474](http://localhost:7474) and start writing.
+Then open http://localhost:7474. Your projects appear in `./projects` on your
+machine.
 
-## Features
+See [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md) for configuration and other
+deployment notes.
 
-- Real-time PDF preview powered by pdf.js
-- CodeMirror 6 editor with LaTeX syntax highlighting
-- Template gallery for common document types
-- PDF export and download
-- Offline-first -- works without an internet connection
-- Cross-platform via Docker (macOS, Linux, Windows)
-- Single-user, no authentication required
-- Project files stored on your filesystem
+## Local development
 
-## Tech Stack
-
-| Layer       | Technology                          |
-| ----------- | ----------------------------------- |
-| Framework   | Next.js 14 (App Router)             |
-| Language    | TypeScript (strict mode)            |
-| Styling     | Tailwind CSS v3                     |
-| Editor      | CodeMirror 6                        |
-| PDF Viewer  | pdf.js                              |
-| Database    | SQLite (better-sqlite3)             |
-| TeX Engine  | xelatex (TeX Live)                  |
-| Runtime     | Node.js 20                          |
-| Container   | Docker (node:20-bookworm-slim)      |
-| Pkg Manager | pnpm                                |
-
-## Development
-
-Make sure you have Node.js 20+ and pnpm installed.
+You'll need Node.js 20+, pnpm, and a working `xelatex` on your `PATH`.
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-The dev server starts on [http://localhost:7474](http://localhost:7474).
-
-For Docker-based development:
+The dev server runs on http://localhost:7474. There's also a Docker dev setup
+with hot reload that includes TeX Live, if you'd rather not install it locally:
 
 ```bash
 docker compose -f docker-compose.dev.yml up
 ```
 
+## How it's built
+
+| Layer       | Choice                          |
+| ----------- | ------------------------------- |
+| Framework   | Next.js 14 (App Router)         |
+| Language    | TypeScript, strict mode         |
+| Styling     | Tailwind CSS v3                 |
+| Editor      | CodeMirror 6                    |
+| PDF viewer  | pdf.js                          |
+| Index       | SQLite (better-sqlite3)         |
+| TeX engine  | xelatex (TeX Live)              |
+| Container   | Docker, node:20-bookworm-slim   |
+
+More detail in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Contributing
 
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines on branching, commits, and pull requests.
-
-## Self-Hosting
-
-See [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md) for Docker deployment instructions and configuration options.
-
-## Architecture
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for an overview of how TexSet is built.
+Contributions are welcome. Start with [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
+for the branching and pull request workflow.
 
 ## License
 

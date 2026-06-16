@@ -1,21 +1,28 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { CompileStatus } from "./useCompile";
 
-type PreviewState = "loading" | "ready" | "empty" | "error";
+type RenderState = "loading" | "ready" | "blank" | "error";
 
 interface PreviewPaneProps {
   projectId: string;
   // bumped after each successful compile so we know to re-render the PDF
   version: number;
+  // the compile outcome, used to explain why there's nothing to show yet
+  documentStatus: CompileStatus;
 }
 
 // Renders the compiled PDF with pdf.js, one canvas per page. The worker is
 // bundled from the package so it keeps working offline.
-export function PreviewPane({ projectId, version }: PreviewPaneProps) {
+export function PreviewPane({
+  projectId,
+  version,
+  documentStatus,
+}: PreviewPaneProps) {
   const pagesRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [state, setState] = useState<PreviewState>("loading");
+  const [state, setState] = useState<RenderState>("blank");
 
   useEffect(() => {
     let cancelled = false;
@@ -26,9 +33,9 @@ export function PreviewPane({ projectId, version }: PreviewPaneProps) {
       const scroller = scrollRef.current;
       if (!container || !scroller) return;
 
-      // nothing has been compiled yet on first open
+      // no successful compile yet, so there's no PDF to render
       if (version === 0) {
-        setState("empty");
+        setState("blank");
         return;
       }
 
@@ -92,24 +99,30 @@ export function PreviewPane({ projectId, version }: PreviewPaneProps) {
     };
   }, [projectId, version]);
 
+  // pick the placeholder message for when there's no rendered PDF on screen
+  const placeholder = (() => {
+    if (documentStatus === "running") return null; // show the spinner instead
+    if (documentStatus === "empty")
+      return "This document is empty. Start writing to see the preview.";
+    if (documentStatus === "error" || state === "error")
+      return "No preview yet. Check the compile log for errors.";
+    return "Compile to see the preview.";
+  })();
+
+  const showOverlay = state !== "ready";
+  const showSpinner =
+    state === "loading" || (state === "blank" && documentStatus === "running");
+
   return (
     <div ref={scrollRef} className="relative h-full overflow-auto bg-surface-2">
       <div ref={pagesRef} className="p-6" />
 
-      {state !== "ready" && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          {state === "loading" && (
+      {showOverlay && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6 text-center">
+          {showSpinner ? (
             <span className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-          )}
-          {state === "empty" && (
-            <p className="text-sm text-text-muted">
-              Compile to see the preview.
-            </p>
-          )}
-          {state === "error" && (
-            <p className="text-sm text-text-muted">
-              No preview yet. Check the compile log for errors.
-            </p>
+          ) : (
+            <p className="max-w-xs text-sm text-text-muted">{placeholder}</p>
           )}
         </div>
       )}

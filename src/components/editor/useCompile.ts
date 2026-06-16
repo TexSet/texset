@@ -2,7 +2,12 @@
 
 import { useCallback, useRef, useState } from "react";
 
-export type CompileStatus = "idle" | "running" | "success" | "error";
+export type CompileStatus =
+  | "idle"
+  | "running"
+  | "success"
+  | "error"
+  | "empty";
 
 // Drives compilation for one project. Reads the Server-Sent Events stream from
 // the compile route, accumulating the log and learning when the PDF is ready.
@@ -22,6 +27,7 @@ export function useCompile(projectId: string) {
     setLog("");
 
     let success = false;
+    let empty = false;
     let duration: number | null = null;
 
     try {
@@ -57,6 +63,7 @@ export function useCompile(projectId: string) {
           else if (event.type === "error") setLog((prev) => prev + event.message);
           else if (event.type === "done") {
             success = event.success;
+            empty = event.empty;
             duration = event.durationMs;
           }
         }
@@ -70,6 +77,8 @@ export function useCompile(projectId: string) {
     if (success) {
       setStatus("success");
       setPdfVersion((v) => v + 1);
+    } else if (empty) {
+      setStatus("empty");
     } else {
       setStatus("error");
     }

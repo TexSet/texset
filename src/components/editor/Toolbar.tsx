@@ -38,6 +38,8 @@ function statusLabel(
       };
     case "error":
       return { text: "Compile errors", className: "text-danger" };
+    case "empty":
+      return { text: "Empty document", className: "text-text-muted" };
     default:
       return { text: "", className: "" };
   }

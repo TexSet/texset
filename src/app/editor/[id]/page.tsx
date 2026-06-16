@@ -1,42 +1,170 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { SplitPane } from "@/components/editor/SplitPane";
+import { CompileLog } from "@/components/editor/CompileLog";
+import { Toolbar, type SaveState } from "@/components/editor/Toolbar";
+import { useCompile } from "@/components/editor/useCompile";
+import type { Project } from "@/lib/projects";
 
-// Placeholder editor. It confirms the project loads end to end; the real
-// CodeMirror + PDF preview lands in the next step.
+// CodeMirror and pdf.js only run in the browser, so load them without SSR
+const EditorPane = dynamic(
+  () => import("@/components/editor/EditorPane").then((m) => m.EditorPane),
+  { ssr: false },
+);
+const PreviewPane = dynamic(
+  () => import("@/components/editor/PreviewPane").then((m) => m.PreviewPane),
+  { ssr: false },
+);
+
+const SAVE_DEBOUNCE_MS = 800;
+const COMPILE_DEBOUNCE_MS = 2000;
+
 export default function EditorPage({ params }: { params: { id: string } }) {
-  const [name, setName] = useState<string | null>(null);
-  const [missing, setMissing] = useState(false);
+  const { id } = params;
 
+  const [project, setProject] = useState<Project | null>(null);
+  const [source, setSource] = useState("");
+  const [missing, setMissing] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("saved");
+  const [showLog, setShowLog] = useState(false);
+
+  const { compile, status, log, durationMs, pdfVersion } = useCompile(id);
+
+  const sourceRef = useRef("");
+  const lastSavedRef = useRef("");
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const compileTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const save = useCallback(async () => {
+    const value = sourceRef.current;
+    if (value === lastSavedRef.current) return;
+    setSaveState("saving");
+    await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source: value }),
+    });
+    lastSavedRef.current = value;
+    setSaveState("saved");
+  }, [id]);
+
+  // load the project and its source, then compile once so the preview fills in
   useEffect(() => {
-    fetch(`/api/projects/${params.id}`)
+    let active = true;
+    fetch(`/api/projects/${id}`)
       .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => setName(data.project.name))
-      .catch(() => setMissing(true));
-  }, [params.id]);
+      .then((data) => {
+        if (!active) return;
+        setProject(data.project);
+        setSource(data.source);
+        sourceRef.current = data.source;
+        lastSavedRef.current = data.source;
+        compile();
+      })
+      .catch(() => active && setMissing(true));
+    return () => {
+      active = false;
+    };
+  }, [id, compile]);
+
+  // open the log automatically when a compile fails
+  useEffect(() => {
+    if (status === "error") setShowLog(true);
+  }, [status]);
+
+  // flush pending work when leaving the editor
+  useEffect(() => {
+    return () => {
+      clearTimeout(saveTimer.current);
+      clearTimeout(compileTimer.current);
+      void save();
+    };
+  }, [save]);
+
+  function handleChange(value: string) {
+    setSource(value);
+    sourceRef.current = value;
+    setSaveState("dirty");
+
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => void save(), SAVE_DEBOUNCE_MS);
+
+    clearTimeout(compileTimer.current);
+    compileTimer.current = setTimeout(async () => {
+      await save();
+      compile();
+    }, COMPILE_DEBOUNCE_MS);
+  }
+
+  async function manualCompile() {
+    clearTimeout(compileTimer.current);
+    await save();
+    compile();
+  }
+
+  async function rename(name: string) {
+    const res = await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (res.ok) setProject(await res.json());
+  }
+
+  if (missing) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3">
+        <p className="text-text-muted">This project doesn&apos;t exist.</p>
+        <Link href="/" className="text-sm font-medium text-accent">
+          Back to dashboard
+        </Link>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <span className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen">
-      <header className="glass flex h-14 items-center gap-3 border-b border-border px-6">
-        <Link
-          href="/"
-          className="flex items-center gap-1.5 text-sm text-text-muted transition hover:text-text"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Link>
-        <span className="font-medium">{name ?? (missing ? "Not found" : "Loading...")}</span>
-      </header>
+    <div className="flex h-screen flex-col overflow-hidden">
+      <Toolbar
+        project={project}
+        saveState={saveState}
+        status={status}
+        durationMs={durationMs}
+        hasPdf={pdfVersion > 0}
+        onCompile={manualCompile}
+        onToggleLog={() => setShowLog((open) => !open)}
+        onRename={rename}
+      />
 
-      <main className="mx-auto max-w-2xl px-6 py-20 text-center">
-        {missing ? (
-          <p className="text-text-muted">This project doesn&apos;t exist.</p>
-        ) : (
-          <p className="text-text-muted">The editor is coming together. Hang tight.</p>
-        )}
-      </main>
+      <div className="min-h-0 flex-1">
+        <SplitPane
+          left={
+            <div className="flex h-full flex-col">
+              <div className="min-h-0 flex-1">
+                <EditorPane value={source} onChange={handleChange} />
+              </div>
+              {showLog && (
+                <CompileLog
+                  log={log}
+                  status={status}
+                  onClose={() => setShowLog(false)}
+                />
+              )}
+            </div>
+          }
+          right={<PreviewPane projectId={id} version={pdfVersion} />}
+        />
+      </div>
     </div>
   );
 }

@@ -8,6 +8,9 @@
 # production
 /build
 
+# pdf.js worker, copied from node_modules at dev/build time
+/public/pdf.worker.min.mjs
+
 # user project data (created at runtime, bind-mounted in Docker)
 /projects
 

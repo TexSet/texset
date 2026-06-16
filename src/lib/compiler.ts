@@ -6,6 +6,9 @@ import { mainSourcePath, outputPdfPath, ensureProjectDirs } from "./storage";
 
 export interface CompileResult {
   success: boolean;
+  // the document compiled cleanly but had nothing to typeset (an empty body).
+  // not a failure, just nothing to preview yet.
+  empty: boolean;
   log: string;
   durationMs: number;
   passes: number;
@@ -66,14 +69,14 @@ export async function runCompile(
   } catch {
     const message = `Unknown engine: ${engineId}\n`;
     onLog?.(message);
-    return { success: false, log: message, durationMs: 0, passes: 0 };
+    return { success: false, empty: false, log: message, durationMs: 0, passes: 0 };
   }
 
   const mainPath = mainSourcePath(projectId, engine);
   if (!fs.existsSync(mainPath)) {
     const message = `No ${engine.mainFileName} found for this project.\n`;
     onLog?.(message);
-    return { success: false, log: message, durationMs: 0, passes: 0 };
+    return { success: false, empty: false, log: message, durationMs: 0, passes: 0 };
   }
 
   ensureProjectDirs(projectId);
@@ -99,8 +102,11 @@ export async function runCompile(
   }
 
   const pdfExists = fs.existsSync(outputPdfPath(projectId, engine));
+  // an empty body makes xelatex finish cleanly with no PDF and this notice
+  const empty = !pdfExists && /no pages of output/i.test(log);
   return {
     success: lastCode === 0 && pdfExists,
+    empty,
     log,
     durationMs: Date.now() - start,
     passes,
@@ -132,6 +138,7 @@ export function compileStream(
       send({
         type: "done",
         success: result.success,
+        empty: result.empty,
         durationMs: result.durationMs,
         passes: result.passes,
       });

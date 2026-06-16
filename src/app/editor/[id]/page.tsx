@@ -162,7 +162,13 @@ export default function EditorPage({ params }: { params: { id: string } }) {
               )}
             </div>
           }
-          right={<PreviewPane projectId={id} version={pdfVersion} />}
+          right={
+            <PreviewPane
+              projectId={id}
+              version={pdfVersion}
+              documentStatus={status}
+            />
+          }
         />
       </div>
     </div>

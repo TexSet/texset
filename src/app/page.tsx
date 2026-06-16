@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { listProjects } from "@/lib/projects";
 import { templates } from "@/lib/templates";
 import { NewProjectButton } from "@/components/dashboard/NewProjectButton";
@@ -21,9 +20,8 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-10 glass border-b border-border">
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-2.5 px-6">
-          <Image src="/TexSet.svg" alt="" width={26} height={26} priority />
-          <span className="text-base font-semibold">TexSet</span>
+        <div className="mx-auto flex h-14 max-w-5xl items-center px-6">
+          <span className="text-base font-semibold tracking-tight">TexSet</span>
         </div>
       </header>
 

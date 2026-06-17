@@ -14,12 +14,13 @@
   --color-text: 15 18 23;
   --color-text-muted: 92 99 112;
 
-  /* default accent is the LaTeX green (#50C878) */
-  --color-accent: 80 200 120;
+  /* default accent is the LaTeX green (#14B84B) */
+  --color-accent: 20 184 75;
   --color-accent-fg: 255 255 255;
-  --color-accent-soft: 224 245 233;
+  --color-accent-soft: 222 246 230;
 
   --color-danger: 225 76 76;
+  --color-warning: 217 119 6;
 
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
@@ -28,14 +29,14 @@
 /* Per-engine accent. Set data-engine on a wrapper and everything tinted with
    the accent token follows along. Typst lands here in a later version. */
 [data-engine="latex"] {
-  --color-accent: 80 200 120;
-  --color-accent-soft: 224 245 233;
+  --color-accent: 20 184 75;
+  --color-accent-soft: 222 246 230;
 }
 
 [data-engine="typst"] {
-  /* placeholder blue until Typst support arrives */
-  --color-accent: 56 152 236;
-  --color-accent-soft: 222 238 252;
+  /* ready for when Typst support arrives */
+  --color-accent: 0 122 255;
+  --color-accent-soft: 220 235 255;
 }
 
 /* Dark theme tokens live here once we ship dark mode. Toggling will be a matter

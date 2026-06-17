@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, Play, ScrollText } from "lucide-react";
+import { ArrowLeft, Download, Images, Play, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { engines } from "@/lib/engines";
 import type { Project } from "@/lib/projects";
@@ -18,6 +18,7 @@ interface ToolbarProps {
   hasPdf: boolean;
   onCompile: () => void;
   onToggleLog: () => void;
+  onToggleFiles: () => void;
   onRename: (name: string) => void;
 }
 
@@ -55,6 +56,7 @@ export function Toolbar({
   hasPdf,
   onCompile,
   onToggleLog,
+  onToggleFiles,
   onRename,
 }: ToolbarProps) {
   const [name, setName] = useState(project.name);
@@ -113,6 +115,10 @@ export function Toolbar({
             {compileStatus.text}
           </span>
         )}
+
+        <Button variant="ghost" size="sm" icon={Images} onClick={onToggleFiles}>
+          Files
+        </Button>
 
         <Button variant="ghost" size="sm" icon={ScrollText} onClick={onToggleLog}>
           Log

@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import type { EditorView } from "@codemirror/view";
 import { SplitPane } from "@/components/editor/SplitPane";
 import { CompileLog } from "@/components/editor/CompileLog";
+import { FilesPanel } from "@/components/editor/FilesPanel";
 import { Toolbar, type SaveState } from "@/components/editor/Toolbar";
 import { useCompile } from "@/components/editor/useCompile";
 import type { Project } from "@/lib/projects";
@@ -30,11 +32,13 @@ export default function EditorPage({ params }: { params: { id: string } }) {
   const [missing, setMissing] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [showLog, setShowLog] = useState(false);
+  const [showFiles, setShowFiles] = useState(false);
 
   const { compile, status, log, durationMs, pdfVersion } = useCompile(id);
 
   const sourceRef = useRef("");
   const lastSavedRef = useRef("");
+  const editorViewRef = useRef<EditorView | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
   const compileTimer = useRef<ReturnType<typeof setTimeout>>();
 
@@ -105,6 +109,16 @@ export default function EditorPage({ params }: { params: { id: string } }) {
     compile();
   }
 
+  // drop an \includegraphics line for an uploaded image at the cursor
+  function insertImage(name: string) {
+    const view = editorViewRef.current;
+    if (!view) return;
+    view.dispatch(
+      view.state.replaceSelection(`\\includegraphics[width=\\linewidth]{${name}}`),
+    );
+    view.focus();
+  }
+
   async function rename(name: string) {
     const res = await fetch(`/api/projects/${id}`, {
       method: "PATCH",
@@ -143,33 +157,44 @@ export default function EditorPage({ params }: { params: { id: string } }) {
         hasPdf={pdfVersion > 0}
         onCompile={manualCompile}
         onToggleLog={() => setShowLog((open) => !open)}
+        onToggleFiles={() => setShowFiles((open) => !open)}
         onRename={rename}
       />
 
-      <div className="min-h-0 flex-1">
-        <SplitPane
-          left={
-            <div className="flex h-full flex-col">
-              <div className="min-h-0 flex-1">
-                <EditorPane value={source} onChange={handleChange} />
+      <div className="flex min-h-0 flex-1">
+        {showFiles && <FilesPanel projectId={id} onInsertImage={insertImage} />}
+
+        <div className="min-w-0 flex-1">
+          <SplitPane
+            left={
+              <div className="flex h-full flex-col">
+                <div className="min-h-0 flex-1">
+                  <EditorPane
+                    value={source}
+                    onChange={handleChange}
+                    onReady={(view) => {
+                      editorViewRef.current = view;
+                    }}
+                  />
+                </div>
+                {showLog && (
+                  <CompileLog
+                    log={log}
+                    status={status}
+                    onClose={() => setShowLog(false)}
+                  />
+                )}
               </div>
-              {showLog && (
-                <CompileLog
-                  log={log}
-                  status={status}
-                  onClose={() => setShowLog(false)}
-                />
-              )}
-            </div>
-          }
-          right={
-            <PreviewPane
-              projectId={id}
-              version={pdfVersion}
-              documentStatus={status}
-            />
-          }
-        />
+            }
+            right={
+              <PreviewPane
+                projectId={id}
+                version={pdfVersion}
+                documentStatus={status}
+              />
+            }
+          />
+        </div>
       </div>
     </div>
   );

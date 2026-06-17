@@ -5,7 +5,11 @@ import { projectDir, projectOutputDir } from "./paths";
 import { mainSourcePath, outputPdfPath, ensureProjectDirs } from "./storage";
 
 export interface CompileResult {
+  // the compiler exited cleanly with a PDF
   success: boolean;
+  // a PDF came out even if there were errors. LaTeX often still produces one,
+  // and we'd rather show it (with the errors) than hide it, like Overleaf does.
+  pdfProduced: boolean;
   // the document compiled cleanly but had nothing to typeset (an empty body).
   // not a failure, just nothing to preview yet.
   empty: boolean;
@@ -69,14 +73,28 @@ export async function runCompile(
   } catch {
     const message = `Unknown engine: ${engineId}\n`;
     onLog?.(message);
-    return { success: false, empty: false, log: message, durationMs: 0, passes: 0 };
+    return {
+      success: false,
+      pdfProduced: false,
+      empty: false,
+      log: message,
+      durationMs: 0,
+      passes: 0,
+    };
   }
 
   const mainPath = mainSourcePath(projectId, engine);
   if (!fs.existsSync(mainPath)) {
     const message = `No ${engine.mainFileName} found for this project.\n`;
     onLog?.(message);
-    return { success: false, empty: false, log: message, durationMs: 0, passes: 0 };
+    return {
+      success: false,
+      pdfProduced: false,
+      empty: false,
+      log: message,
+      durationMs: 0,
+      passes: 0,
+    };
   }
 
   ensureProjectDirs(projectId);
@@ -106,6 +124,7 @@ export async function runCompile(
   const empty = !pdfExists && /no pages of output/i.test(log);
   return {
     success: lastCode === 0 && pdfExists,
+    pdfProduced: pdfExists,
     empty,
     log,
     durationMs: Date.now() - start,
@@ -138,6 +157,7 @@ export function compileStream(
       send({
         type: "done",
         success: result.success,
+        pdfProduced: result.pdfProduced,
         empty: result.empty,
         durationMs: result.durationMs,
         passes: result.passes,

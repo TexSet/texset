@@ -70,9 +70,9 @@ export default function EditorPage({ params }: { params: { id: string } }) {
     };
   }, [id, compile]);
 
-  // open the log automatically when a compile fails
+  // open the log automatically when a compile fails or has errors
   useEffect(() => {
-    if (status === "error") setShowLog(true);
+    if (status === "error" || status === "warning") setShowLog(true);
   }, [status]);
 
   // flush pending work when leaving the editor

@@ -27,6 +27,7 @@ const config: Config = {
           soft: withAlpha("--color-accent-soft"),
         },
         danger: withAlpha("--color-danger"),
+        warning: withAlpha("--color-warning"),
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { Project } from "@/lib/projects";
 import { ProjectCard } from "./ProjectCard";
@@ -25,6 +25,12 @@ export function ProjectsGallery({
   const [projects, setProjects] = useState(initialProjects);
   const [showAll, setShowAll] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Project | null>(null);
+
+  // when the server sends a fresh list (e.g. after navigating back from a
+  // project), adopt it so deleted or newly created projects are reflected
+  useEffect(() => {
+    setProjects(initialProjects);
+  }, [initialProjects]);
 
   async function togglePin(project: Project) {
     const pinned = !project.pinned;

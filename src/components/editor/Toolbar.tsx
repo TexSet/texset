@@ -36,6 +36,8 @@ function statusLabel(
             : "Compiled",
         className: "text-accent",
       };
+    case "warning":
+      return { text: "Compiled with errors", className: "text-warning" };
     case "error":
       return { text: "Compile errors", className: "text-danger" };
     case "empty":

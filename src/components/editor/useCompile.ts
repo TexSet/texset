@@ -6,6 +6,8 @@ export type CompileStatus =
   | "idle"
   | "running"
   | "success"
+  // a PDF was produced but the log has errors (still worth showing the PDF)
+  | "warning"
   | "error"
   | "empty";
 
@@ -27,6 +29,7 @@ export function useCompile(projectId: string) {
     setLog("");
 
     let success = false;
+    let pdfProduced = false;
     let empty = false;
     let duration: number | null = null;
 
@@ -63,6 +66,7 @@ export function useCompile(projectId: string) {
           else if (event.type === "error") setLog((prev) => prev + event.message);
           else if (event.type === "done") {
             success = event.success;
+            pdfProduced = event.pdfProduced;
             empty = event.empty;
             duration = event.durationMs;
           }
@@ -74,9 +78,10 @@ export function useCompile(projectId: string) {
     }
 
     setDurationMs(duration);
-    if (success) {
-      setStatus("success");
+    // show the PDF whenever one was produced, even if the log has errors
+    if (pdfProduced) {
       setPdfVersion((v) => v + 1);
+      setStatus(success ? "success" : "warning");
     } else if (empty) {
       setStatus("empty");
     } else {

@@ -8,6 +8,9 @@ const nextConfig = {
   experimental: {
     // better-sqlite3 is a native module, keep it out of the webpack bundle
     serverComponentsExternalPackages: ["better-sqlite3"],
+    // don't reuse a cached dynamic page when navigating back, so the dashboard
+    // always reflects projects you just created or deleted
+    staleTimes: { dynamic: 0 },
   },
 };
 

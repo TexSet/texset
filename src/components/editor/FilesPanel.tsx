@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
-import { FileText, Trash2, Upload } from "lucide-react";
+import { FilePlus, FileText, Trash2, Upload } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface ProjectFile {
@@ -14,9 +14,14 @@ interface ProjectFile {
 
 interface FilesPanelProps {
   projectId: string;
-  // insert a reference to an uploaded image at the editor cursor
+  activeFile: string;
   onInsertImage: (name: string) => void;
+  onOpenFile: (name: string) => void;
+  onFileDeleted: (name: string) => void;
 }
+
+const TEXT_FILE = /\.(tex|txt|bib|cls|sty)$/i;
+const INSERTABLE = /\.(png|jpe?g|gif|webp|pdf)$/i;
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -24,12 +29,19 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function FilesPanel({ projectId, onInsertImage }: FilesPanelProps) {
+export function FilesPanel({
+  projectId,
+  activeFile,
+  onInsertImage,
+  onOpenFile,
+  onFileDeleted,
+}: FilesPanelProps) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<ProjectFile | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [newName, setNewName] = useState<string | null>(null);
+  const uploadInput = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
     const res = await fetch(`/api/projects/${projectId}/files`);
@@ -57,6 +69,20 @@ export function FilesPanel({ projectId, onInsertImage }: FilesPanelProps) {
     [projectId, refresh],
   );
 
+  async function createFile() {
+    let name = (newName ?? "").trim();
+    setNewName(null);
+    if (!name) return;
+    if (!/\.[a-z0-9]+$/i.test(name)) name += ".tex"; // default to a .tex file
+    await fetch(`/api/projects/${projectId}/files/${encodeURIComponent(name)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "" }),
+    });
+    await refresh();
+    onOpenFile(name);
+  }
+
   async function confirmDelete() {
     if (!pendingDelete) return;
     const { name } = pendingDelete;
@@ -64,7 +90,8 @@ export function FilesPanel({ projectId, onInsertImage }: FilesPanelProps) {
     await fetch(`/api/projects/${projectId}/files/${encodeURIComponent(name)}`, {
       method: "DELETE",
     });
-    refresh();
+    await refresh();
+    if (name === activeFile) onFileDeleted(name);
   }
 
   return (
@@ -86,15 +113,26 @@ export function FilesPanel({ projectId, onInsertImage }: FilesPanelProps) {
     >
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <span className="text-xs font-medium text-text-muted">Files</span>
-        <button
-          onClick={() => inputRef.current?.click()}
-          className="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium text-accent transition hover:bg-accent/10"
-        >
-          <Upload className="h-3.5 w-3.5" />
-          Upload
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setNewName("")}
+            className="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium text-accent transition hover:bg-accent/10"
+            title="New file"
+          >
+            <FilePlus className="h-3.5 w-3.5" />
+            New
+          </button>
+          <button
+            onClick={() => uploadInput.current?.click()}
+            className="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium text-accent transition hover:bg-accent/10"
+            title="Upload images or PDFs"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Upload
+          </button>
+        </div>
         <input
-          ref={inputRef}
+          ref={uploadInput}
           type="file"
           multiple
           accept=".png,.jpg,.jpeg,.gif,.webp,.pdf"
@@ -107,13 +145,28 @@ export function FilesPanel({ projectId, onInsertImage }: FilesPanelProps) {
       </div>
 
       <div className="flex-1 overflow-auto p-2">
+        {newName !== null && (
+          <input
+            autoFocus
+            value={newName}
+            placeholder="name.tex"
+            onChange={(event) => setNewName(event.target.value)}
+            onBlur={createFile}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") createFile();
+              if (event.key === "Escape") setNewName(null);
+            }}
+            className="mb-2 w-full rounded-md border border-accent bg-surface px-2 py-1 text-xs focus:outline-none"
+          />
+        )}
+
         {uploading && (
           <p className="px-1 py-2 text-xs text-text-muted">Uploading...</p>
         )}
 
-        {files.length === 0 && !uploading ? (
+        {files.length === 0 && !uploading && newName === null ? (
           <p className="px-1 py-6 text-center text-xs text-text-muted">
-            Drop images here or use Upload, then click one to insert it.
+            Drop images here or use Upload. Use New to add a .tex file.
           </p>
         ) : (
           <ul className="space-y-1">
@@ -135,16 +188,38 @@ export function FilesPanel({ projectId, onInsertImage }: FilesPanelProps) {
                       {file.name}
                     </span>
                   </button>
-                ) : (
-                  <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs">
-                    <FileText className="h-3.5 w-3.5 shrink-0 text-text-muted" />
+                ) : TEXT_FILE.test(file.name) ? (
+                  <button
+                    onClick={() => onOpenFile(file.name)}
+                    className={clsx(
+                      "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition hover:bg-surface-2",
+                      file.name === activeFile && "bg-accent/12 text-accent",
+                    )}
+                  >
+                    <FileText className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate">{file.name}</span>
                     {file.isMain && (
-                      <span className="rounded bg-accent/12 px-1 text-[10px] font-medium text-accent">
+                      <span className="rounded bg-accent/15 px-1 text-[10px] font-medium text-accent">
                         main
                       </span>
                     )}
-                  </div>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() =>
+                      INSERTABLE.test(file.name) && onInsertImage(file.name)
+                    }
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition hover:bg-surface-2"
+                    title={
+                      INSERTABLE.test(file.name) ? `Insert ${file.name}` : undefined
+                    }
+                  >
+                    <FileText className="h-3.5 w-3.5 shrink-0 text-text-muted" />
+                    <span className="truncate">{file.name}</span>
+                    <span className="ml-auto text-[10px] text-text-muted/60">
+                      {formatSize(file.size)}
+                    </span>
+                  </button>
                 )}
 
                 {!file.isMain && (
@@ -155,12 +230,6 @@ export function FilesPanel({ projectId, onInsertImage }: FilesPanelProps) {
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
-                )}
-
-                {file.kind !== "image" && (
-                  <span className="px-2 text-[10px] text-text-muted/60">
-                    {formatSize(file.size)}
-                  </span>
                 )}
               </li>
             ))}

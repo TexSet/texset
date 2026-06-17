@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Pin } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { Project } from "@/lib/projects";
 import { ProjectCard } from "./ProjectCard";
@@ -11,9 +12,7 @@ const PAGE_SIZE = 8;
 function sortProjects(list: Project[]): Project[] {
   return [...list].sort((a, b) => {
     if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-    return (
-      (b.lastOpenedAt ?? b.updatedAt) - (a.lastOpenedAt ?? a.updatedAt)
-    );
+    return (b.lastOpenedAt ?? b.updatedAt) - (a.lastOpenedAt ?? a.updatedAt);
   });
 }
 
@@ -26,8 +25,7 @@ export function ProjectsGallery({
   const [showAll, setShowAll] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Project | null>(null);
 
-  // when the server sends a fresh list (e.g. after navigating back from a
-  // project), adopt it so deleted or newly created projects are reflected
+  // adopt a fresh server list (e.g. after navigating back from a project)
   useEffect(() => {
     setProjects(initialProjects);
   }, [initialProjects]);
@@ -35,9 +33,7 @@ export function ProjectsGallery({
   async function togglePin(project: Project) {
     const pinned = !project.pinned;
     setProjects((prev) =>
-      sortProjects(
-        prev.map((p) => (p.id === project.id ? { ...p, pinned } : p)),
-      ),
+      sortProjects(prev.map((p) => (p.id === project.id ? { ...p, pinned } : p))),
     );
     await fetch(`/api/projects/${project.id}`, {
       method: "PATCH",
@@ -58,35 +54,55 @@ export function ProjectsGallery({
     return (
       <div className="rounded-xl border border-dashed border-border bg-surface/50 p-10 text-center">
         <p className="text-text-muted">
-          No documents yet. Start with a blank document or pick a template above.
+          No documents yet. Create one with New document or pick a template above.
         </p>
       </div>
     );
   }
 
-  const visible = showAll ? projects : projects.slice(0, PAGE_SIZE);
+  const pinned = projects.filter((p) => p.pinned);
+  const rest = projects.filter((p) => !p.pinned);
+  const visibleRest = showAll ? rest : rest.slice(0, PAGE_SIZE);
+
+  const card = (project: Project) => (
+    <ProjectCard
+      key={project.id}
+      project={project}
+      onTogglePin={togglePin}
+      onDelete={setPendingDelete}
+    />
+  );
 
   return (
-    <>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {visible.map((project) => (
-          <ProjectCard
-            key={project.id}
-            project={project}
-            onTogglePin={togglePin}
-            onDelete={setPendingDelete}
-          />
-        ))}
-      </div>
-
-      {projects.length > PAGE_SIZE && (
-        <button
-          onClick={() => setShowAll((open) => !open)}
-          className="mt-4 text-sm font-medium text-accent transition hover:brightness-110"
-        >
-          {showAll ? "Show less" : `Show all ${projects.length}`}
-        </button>
+    <div className="space-y-6">
+      {pinned.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-1.5 text-sm font-medium text-text-muted">
+            <Pin className="h-3.5 w-3.5 fill-current" />
+            Pinned
+          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {pinned.map(card)}
+          </div>
+        </div>
       )}
+
+      <div className="space-y-3">
+        {pinned.length > 0 && rest.length > 0 && (
+          <div className="text-sm font-medium text-text-muted">Recent</div>
+        )}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {visibleRest.map(card)}
+        </div>
+        {rest.length > PAGE_SIZE && (
+          <button
+            onClick={() => setShowAll((open) => !open)}
+            className="text-sm font-medium text-accent transition hover:brightness-110"
+          >
+            {showAll ? "Show less" : `Show all ${rest.length}`}
+          </button>
+        )}
+      </div>
 
       {pendingDelete && (
         <ConfirmDialog
@@ -97,6 +113,6 @@ export function ProjectsGallery({
           onCancel={() => setPendingDelete(null)}
         />
       )}
-    </>
+    </div>
   );
 }

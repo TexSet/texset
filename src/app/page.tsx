@@ -1,6 +1,6 @@
 import { listProjects } from "@/lib/projects";
 import { templates } from "@/lib/templates";
-import { NewProjectButton } from "@/components/dashboard/NewProjectButton";
+import { Sidebar } from "@/components/dashboard/Sidebar";
 import { TemplateGrid } from "@/components/dashboard/TemplateGrid";
 import { ProjectsGallery } from "@/components/dashboard/ProjectsGallery";
 
@@ -18,26 +18,17 @@ export default function DashboardPage() {
   }));
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-10 glass border-b border-border">
-        <div className="mx-auto flex h-14 max-w-5xl items-center px-6">
-          <span className="text-base font-semibold tracking-tight">TexSet</span>
-        </div>
-      </header>
+    <div className="flex min-h-screen">
+      <Sidebar />
 
-      <main className="mx-auto max-w-5xl animate-fade-in space-y-10 px-6 py-10">
-        <section className="space-y-3">
-          <h2 className="text-sm font-medium text-text-muted">New document</h2>
-          <NewProjectButton />
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-sm font-medium text-text-muted">Templates</h2>
+      <main className="min-w-0 flex-1 animate-fade-in space-y-10 px-8 py-10">
+        <section id="templates" className="space-y-4">
+          <h2 className="text-lg font-semibold">Templates</h2>
           <TemplateGrid templates={templateCards} />
         </section>
 
-        <section className="space-y-3">
-          <h2 className="text-sm font-medium text-text-muted">My projects</h2>
+        <section id="projects" className="space-y-4">
+          <h2 className="text-lg font-semibold">My Projects</h2>
           <ProjectsGallery initialProjects={projects} />
         </section>
       </main>

@@ -158,6 +158,14 @@ export function touchProject(id: string): void {
     .run(Date.now(), id);
 }
 
+// bump updated_at after a change that isn't the main source (e.g. editing a
+// secondary .tex file) so the project still counts as recently worked on
+export function touchUpdated(id: string): void {
+  getDb()
+    .prepare(`UPDATE projects SET updated_at = ? WHERE id = ?`)
+    .run(Date.now(), id);
+}
+
 export function deleteProject(id: string): boolean {
   const project = getProject(id);
   if (!project) return false;

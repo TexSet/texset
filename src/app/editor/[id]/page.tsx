@@ -9,6 +9,7 @@ import { CompileLog } from "@/components/editor/CompileLog";
 import { FilesPanel } from "@/components/editor/FilesPanel";
 import { Toolbar, type SaveState } from "@/components/editor/Toolbar";
 import { useCompile } from "@/components/editor/useCompile";
+import { getEngine } from "@/lib/engines";
 import type { Project } from "@/lib/projects";
 
 // CodeMirror and pdf.js only run in the browser, so load them without SSR
@@ -33,11 +34,16 @@ export default function EditorPage({ params }: { params: { id: string } }) {
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [showLog, setShowLog] = useState(false);
   const [showFiles, setShowFiles] = useState(false);
+  // which file is open in the editor; the main file compiles, the rest are
+  // \input from it
+  const [activeFile, setActiveFile] = useState("");
 
   const { compile, status, log, durationMs, pdfVersion } = useCompile(id);
 
   const sourceRef = useRef("");
   const lastSavedRef = useRef("");
+  const activeFileRef = useRef("");
+  const mainFileRef = useRef("main.tex");
   const editorViewRef = useRef<EditorView | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
   const compileTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -46,11 +52,24 @@ export default function EditorPage({ params }: { params: { id: string } }) {
     const value = sourceRef.current;
     if (value === lastSavedRef.current) return;
     setSaveState("saving");
-    await fetch(`/api/projects/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ source: value }),
-    });
+
+    const file = activeFileRef.current;
+    if (file && file !== mainFileRef.current) {
+      // a secondary file goes through the files API
+      await fetch(`/api/projects/${id}/files/${encodeURIComponent(file)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: value }),
+      });
+    } else {
+      // the main file is the project's source
+      await fetch(`/api/projects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: value }),
+      });
+    }
+
     lastSavedRef.current = value;
     setSaveState("saved");
   }, [id]);
@@ -62,6 +81,10 @@ export default function EditorPage({ params }: { params: { id: string } }) {
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data) => {
         if (!active) return;
+        const main = getEngine(data.project.engine).mainFileName;
+        mainFileRef.current = main;
+        setActiveFile(main);
+        activeFileRef.current = main;
         setProject(data.project);
         setSource(data.source);
         sourceRef.current = data.source;
@@ -107,6 +130,39 @@ export default function EditorPage({ params }: { params: { id: string } }) {
     clearTimeout(compileTimer.current);
     await save();
     compile();
+  }
+
+  // switch which file is open: save the current one, then load the chosen file
+  async function openFile(name: string) {
+    if (name === activeFileRef.current) return;
+    clearTimeout(saveTimer.current);
+    clearTimeout(compileTimer.current);
+    await save();
+
+    let content = "";
+    if (name === mainFileRef.current) {
+      const res = await fetch(`/api/projects/${id}`);
+      if (res.ok) content = (await res.json()).source;
+    } else {
+      const res = await fetch(
+        `/api/projects/${id}/files/${encodeURIComponent(name)}`,
+      );
+      if (res.ok) content = await res.text();
+    }
+
+    setActiveFile(name);
+    activeFileRef.current = name;
+    setSource(content);
+    sourceRef.current = content;
+    lastSavedRef.current = content;
+    setSaveState("saved");
+    editorViewRef.current?.focus();
+  }
+
+  // the open file was deleted: fall back to main without re-saving the deleted one
+  function handleFileDeleted() {
+    lastSavedRef.current = sourceRef.current;
+    openFile(mainFileRef.current);
   }
 
   // drop an \includegraphics line for an uploaded image at the cursor
@@ -162,7 +218,15 @@ export default function EditorPage({ params }: { params: { id: string } }) {
       />
 
       <div className="flex min-h-0 flex-1">
-        {showFiles && <FilesPanel projectId={id} onInsertImage={insertImage} />}
+        {showFiles && (
+          <FilesPanel
+            projectId={id}
+            activeFile={activeFile}
+            onInsertImage={insertImage}
+            onOpenFile={openFile}
+            onFileDeleted={handleFileDeleted}
+          />
+        )}
 
         <div className="min-w-0 flex-1">
           <SplitPane

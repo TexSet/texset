@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
-import { FilePlus, FileText, Trash2, Upload } from "lucide-react";
+import { Download, FilePlus, FileText, Trash2, Upload } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface ProjectFile {
@@ -222,15 +222,28 @@ export function FilesPanel({
                   </button>
                 )}
 
-                {!file.isMain && (
-                  <button
-                    onClick={() => setPendingDelete(file)}
-                    className="absolute right-1 top-1 hidden rounded-md bg-surface/90 p-1 text-text-muted shadow-soft transition hover:text-danger group-hover:block"
-                    aria-label={`Delete ${file.name}`}
+                <div className="absolute right-1 top-1 hidden gap-1 group-hover:flex">
+                  <a
+                    href={`/api/projects/${projectId}/files/${encodeURIComponent(file.name)}`}
+                    download={file.name}
+                    onClick={(event) => event.stopPropagation()}
+                    className="rounded-md bg-surface/90 p-1 text-text-muted shadow-soft transition hover:text-text"
+                    aria-label={`Download ${file.name}`}
+                    title="Download"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                )}
+                    <Download className="h-3.5 w-3.5" />
+                  </a>
+                  {!file.isMain && (
+                    <button
+                      onClick={() => setPendingDelete(file)}
+                      className="rounded-md bg-surface/90 p-1 text-text-muted shadow-soft transition hover:text-danger"
+                      aria-label={`Delete ${file.name}`}
+                      title="Delete"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

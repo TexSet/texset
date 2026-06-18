@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Download, Images, Play, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { engines } from "@/lib/engines";
 import type { Project } from "@/lib/projects";
 import type { CompileStatus } from "./useCompile";
@@ -115,6 +116,8 @@ export function Toolbar({
             {compileStatus.text}
           </span>
         )}
+
+        <ThemeToggle className="h-8 w-8" />
 
         <Button variant="ghost" size="sm" icon={Images} onClick={onToggleFiles}>
           Files

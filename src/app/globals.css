@@ -39,8 +39,20 @@
   --color-accent-soft: 220 235 255;
 }
 
-/* Dark theme tokens live here once we ship dark mode. Toggling will be a matter
-   of setting data-theme="dark" on <html> and overriding the values above. */
+/* Dark theme. Toggling sets data-theme="dark" on <html>. The per-engine accents
+   above still apply, so green/blue carry over; only the neutrals change here. */
+[data-theme="dark"] {
+  --color-bg: 16 17 21;
+  --color-surface: 24 25 30;
+  --color-surface-2: 34 36 42;
+  --color-border: 46 48 56;
+
+  --color-text: 236 237 242;
+  --color-text-muted: 150 155 165;
+
+  --color-danger: 239 105 105;
+  --color-warning: 234 179 8;
+}
 
 * {
   border-color: rgb(var(--color-border));

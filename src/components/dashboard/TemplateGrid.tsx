@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   FileText,
   IdCard,
@@ -26,12 +27,15 @@ const icons: Record<string, LucideIcon> = {
 
 export function TemplateGrid({ templates }: { templates: TemplateCard[] }) {
   const { create, pending } = useCreateProject();
+  // templates whose preview image failed to load fall back to an icon
+  const [noPreview, setNoPreview] = useState<Set<string>>(new Set());
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
       {templates.map((template) => {
         const Icon = icons[template.id] ?? FileText;
         const isPending = pending === template.id;
+        const showImage = !noPreview.has(template.id);
 
         return (
           <button
@@ -39,18 +43,35 @@ export function TemplateGrid({ templates }: { templates: TemplateCard[] }) {
             data-engine={template.engine}
             onClick={() => create({ templateId: template.id }, template.id)}
             disabled={isPending}
-            className="group relative flex flex-col items-start gap-3 overflow-hidden rounded-xl border border-border bg-surface p-4 pt-5 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift disabled:opacity-60"
+            className="group relative overflow-hidden rounded-xl border border-border bg-surface text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift disabled:opacity-60"
           >
-            <span className="absolute inset-x-0 top-0 h-1 bg-accent" />
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/15 text-accent">
-              {isPending ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            <div className="h-1 bg-accent" />
+
+            <div className="relative flex h-36 items-center justify-center overflow-hidden border-b border-border bg-white">
+              {showImage ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={`/templates/${template.id}.png`}
+                  alt={`${template.name} preview`}
+                  className="h-full w-full object-contain object-top"
+                  onError={() =>
+                    setNoPreview((prev) => new Set(prev).add(template.id))
+                  }
+                />
               ) : (
-                <Icon className="h-5 w-5" />
+                <Icon className="h-10 w-10 text-accent" />
               )}
-            </span>
-            <span className="font-medium text-text">{template.name}</span>
-            <span className="text-sm text-text-muted">{template.description}</span>
+              {isPending && (
+                <span className="absolute inset-0 flex items-center justify-center bg-surface/70">
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-1 p-3">
+              <span className="font-medium text-text">{template.name}</span>
+              <p className="text-sm text-text-muted">{template.description}</p>
+            </div>
           </button>
         );
       })}

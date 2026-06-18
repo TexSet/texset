@@ -13,8 +13,9 @@ export function NewProjectButton() {
       icon={Plus}
       loading={pending === "blank"}
       onClick={() => create({}, "blank")}
+      className="w-full"
     >
-      Blank document
+      New document
     </Button>
   );
 }

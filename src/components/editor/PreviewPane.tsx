@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Minus, Plus } from "lucide-react";
 import type { CompileStatus } from "./useCompile";
 
 type RenderState = "loading" | "ready" | "blank" | "error";
@@ -13,6 +14,10 @@ interface PreviewPaneProps {
   documentStatus: CompileStatus;
 }
 
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 0.2;
+
 // Renders the compiled PDF with pdf.js, one canvas per page. The worker is
 // bundled from the package so it keeps working offline.
 export function PreviewPane({
@@ -23,6 +28,7 @@ export function PreviewPane({
   const pagesRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<RenderState>("blank");
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,7 +63,8 @@ export function PreviewPane({
         const previousScroll = scroller.scrollTop;
         container.replaceChildren();
 
-        const targetWidth = Math.max(scroller.clientWidth - 48, 320);
+        const baseWidth = Math.max(scroller.clientWidth - 48, 280);
+        const targetWidth = baseWidth * zoom;
         const dpr = window.devicePixelRatio || 1;
 
         for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber++) {
@@ -97,7 +104,7 @@ export function PreviewPane({
       cancelled = true;
       loadingTask?.destroy();
     };
-  }, [projectId, version]);
+  }, [projectId, version, zoom]);
 
   // pick the placeholder message for when there's no rendered PDF on screen
   const placeholder = (() => {
@@ -113,6 +120,10 @@ export function PreviewPane({
   const showSpinner =
     state === "loading" || (state === "blank" && documentStatus === "running");
 
+  function changeZoom(delta: number) {
+    setZoom((z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number((z + delta).toFixed(2)))));
+  }
+
   return (
     <div ref={scrollRef} className="relative h-full overflow-auto bg-surface-2">
       <div ref={pagesRef} className="p-6" />
@@ -124,6 +135,34 @@ export function PreviewPane({
           ) : (
             <p className="max-w-xs text-sm text-text-muted">{placeholder}</p>
           )}
+        </div>
+      )}
+
+      {state === "ready" && (
+        <div className="glass sticky bottom-4 left-1/2 flex w-fit -translate-x-1/2 items-center gap-1 rounded-full border border-border px-1 py-1 shadow-lift">
+          <button
+            onClick={() => changeZoom(-ZOOM_STEP)}
+            disabled={zoom <= ZOOM_MIN}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-text-muted transition hover:bg-surface-2 hover:text-text disabled:opacity-40"
+            aria-label="Zoom out"
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setZoom(1)}
+            className="min-w-12 px-1 text-xs font-medium tabular-nums text-text-muted transition hover:text-text"
+            aria-label="Reset zoom"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+          <button
+            onClick={() => changeZoom(ZOOM_STEP)}
+            disabled={zoom >= ZOOM_MAX}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-text-muted transition hover:bg-surface-2 hover:text-text disabled:opacity-40"
+            aria-label="Zoom in"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
       )}
     </div>

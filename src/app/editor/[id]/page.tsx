@@ -7,6 +7,7 @@ import type { EditorView } from "@codemirror/view";
 import { SplitPane } from "@/components/editor/SplitPane";
 import { CompileLog } from "@/components/editor/CompileLog";
 import { FilesPanel } from "@/components/editor/FilesPanel";
+import { FormatBar } from "@/components/editor/FormatBar";
 import { Toolbar, type SaveState } from "@/components/editor/Toolbar";
 import { useCompile } from "@/components/editor/useCompile";
 import { getEngine } from "@/lib/engines";
@@ -37,6 +38,8 @@ export default function EditorPage({ params }: { params: { id: string } }) {
   // which file is open in the editor; the main file compiles, the rest are
   // \input from it
   const [activeFile, setActiveFile] = useState("");
+  // the CodeMirror view, kept in state so the format bar can act on it
+  const [editorView, setEditorView] = useState<EditorView | null>(null);
 
   const { compile, status, log, durationMs, pdfVersion } = useCompile(id);
 
@@ -126,11 +129,28 @@ export default function EditorPage({ params }: { params: { id: string } }) {
     }, COMPILE_DEBOUNCE_MS);
   }
 
-  async function manualCompile() {
+  const manualCompile = useCallback(async () => {
     clearTimeout(compileTimer.current);
     await save();
     compile();
-  }
+  }, [save, compile]);
+
+  // keyboard shortcuts: save and compile. Mod- means Cmd on macOS and Ctrl on
+  // Windows and Linux, so this works everywhere.
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (!event.metaKey && !event.ctrlKey) return;
+      if (event.key === "s") {
+        event.preventDefault();
+        void save();
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        void manualCompile();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [save, manualCompile]);
 
   // switch which file is open: save the current one, then load the chosen file
   async function openFile(name: string) {
@@ -163,6 +183,15 @@ export default function EditorPage({ params }: { params: { id: string } }) {
   function handleFileDeleted() {
     lastSavedRef.current = sourceRef.current;
     openFile(mainFileRef.current);
+  }
+
+  // jump the editor to a line, used when clicking a compile error
+  function goToLine(lineNumber: number) {
+    if (!editorView) return;
+    const target = Math.min(Math.max(lineNumber, 1), editorView.state.doc.lines);
+    const line = editorView.state.doc.line(target);
+    editorView.dispatch({ selection: { anchor: line.from }, scrollIntoView: true });
+    editorView.focus();
   }
 
   // drop an \includegraphics line for an uploaded image at the cursor
@@ -232,12 +261,14 @@ export default function EditorPage({ params }: { params: { id: string } }) {
           <SplitPane
             left={
               <div className="flex h-full flex-col">
+                <FormatBar view={editorView} />
                 <div className="min-h-0 flex-1">
                   <EditorPane
                     value={source}
                     onChange={handleChange}
                     onReady={(view) => {
                       editorViewRef.current = view;
+                      setEditorView(view);
                     }}
                   />
                 </div>
@@ -246,6 +277,7 @@ export default function EditorPage({ params }: { params: { id: string } }) {
                     log={log}
                     status={status}
                     onClose={() => setShowLog(false)}
+                    onGoToLine={goToLine}
                   />
                 )}
               </div>

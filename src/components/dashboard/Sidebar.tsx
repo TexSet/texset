@@ -1,9 +1,9 @@
 import { NewProjectButton } from "./NewProjectButton";
 import { ImportButton } from "./ImportButton";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
-// Left navigation for the dashboard. Holds the brand, the primary action, and
-// jumps to the page sections. Roomy enough to grow an engine filter and a theme
-// toggle later.
+// Left navigation for the dashboard. Holds the brand, the primary actions, the
+// section links, and the theme toggle pinned at the bottom.
 export function Sidebar() {
   return (
     <aside className="sticky top-0 flex h-screen w-56 shrink-0 flex-col gap-6 border-r border-border bg-surface px-4 py-5">
@@ -30,6 +30,10 @@ export function Sidebar() {
           My Projects
         </a>
       </nav>
+
+      <div className="mt-auto">
+        <ThemeToggle />
+      </div>
     </aside>
   );
 }

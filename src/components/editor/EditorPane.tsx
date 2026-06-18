@@ -2,6 +2,7 @@
 
 import CodeMirror from "@uiw/react-codemirror";
 import type { EditorView } from "@codemirror/view";
+import { useTheme } from "@/components/theme/useTheme";
 import { latexExtensions } from "./latex";
 
 interface EditorPaneProps {
@@ -13,6 +14,8 @@ interface EditorPaneProps {
 }
 
 export function EditorPane({ value, onChange, onReady }: EditorPaneProps) {
+  const { theme } = useTheme();
+
   return (
     <div className="h-full overflow-hidden bg-surface">
       <CodeMirror
@@ -20,7 +23,7 @@ export function EditorPane({ value, onChange, onReady }: EditorPaneProps) {
         onChange={onChange}
         onCreateEditor={(view) => onReady?.(view)}
         height="100%"
-        theme="light"
+        theme={theme === "dark" ? "dark" : "light"}
         extensions={latexExtensions}
         // we provide our own LaTeX autocomplete, so turn off the default one
         basicSetup={{ autocompletion: false }}

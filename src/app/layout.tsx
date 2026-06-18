@@ -24,10 +24,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
 };
+
+// applied before paint so there's no flash of the wrong theme on load
+const themeScript = `(function(){try{var t=localStorage.getItem('texset-theme');document.documentElement.dataset.theme=t==='dark'?'dark':'light';}catch(e){}})();`;
 
 export default function RootLayout({
   children,
@@ -35,7 +37,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>{children}</body>
     </html>
   );

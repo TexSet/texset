@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pin } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { Project } from "@/lib/projects";
@@ -25,10 +25,24 @@ export function ProjectsGallery({
   const [showAll, setShowAll] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Project | null>(null);
 
-  // adopt a fresh server list (e.g. after navigating back from a project)
+  // Always pull a fresh list when the dashboard mounts or regains focus. This is
+  // what keeps deleted or newly created projects from lingering when you come
+  // back from the editor, instead of trusting a cached page.
+  const refetch = useCallback(async () => {
+    const res = await fetch("/api/projects");
+    if (res.ok) setProjects(await res.json());
+  }, []);
+
   useEffect(() => {
-    setProjects(initialProjects);
-  }, [initialProjects]);
+    refetch();
+    const onFocus = () => refetch();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [refetch]);
 
   async function togglePin(project: Project) {
     const pinned = !project.pinned;
@@ -39,6 +53,19 @@ export function ProjectsGallery({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pinned }),
+    });
+  }
+
+  async function renameProject(project: Project, name: string) {
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === project.name) return;
+    setProjects((prev) =>
+      prev.map((p) => (p.id === project.id ? { ...p, name: trimmed } : p)),
+    );
+    await fetch(`/api/projects/${project.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: trimmed }),
     });
   }
 
@@ -70,6 +97,7 @@ export function ProjectsGallery({
       project={project}
       onTogglePin={togglePin}
       onDelete={setPendingDelete}
+      onRename={renameProject}
     />
   );
 

@@ -37,11 +37,17 @@ export const engines: Record<EngineId, Engine> = {
     mainFileName: "main.tex",
     outputFileName: "main.pdf",
     blankSource: LATEX_BLANK,
+    // latexmk drives xelatex and runs bibtex/biber and makeindex as needed,
+    // rerunning until cross-references settle. that's what makes citations,
+    // bibliographies, and indexes actually resolve, the way Overleaf does.
     buildCommand: ({ mainPath, outDir }) => ({
-      command: "xelatex",
+      command: "latexmk",
       args: [
+        "-xelatex",
         // never stop for a prompt, we have no terminal to answer it
         "-interaction=nonstopmode",
+        // keep going and still produce a PDF when there are errors
+        "-f",
         // generate synctex data so we can map between source and PDF later
         "-synctex=1",
         `-output-directory=${outDir}`,

@@ -1,9 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import { getEngine } from "@/lib/engines";
 import { getProject, touchUpdated } from "@/lib/projects";
 import {
   deleteProjectFile,
+  renameProjectFile,
   resolveProjectFile,
   safeFileName,
   writeProjectFile,
@@ -74,6 +76,36 @@ export async function PUT(request: Request, { params }: Params) {
   writeProjectFile(params.id, name, Buffer.from(body.content, "utf8"));
   touchUpdated(params.id);
   return NextResponse.json({ name });
+}
+
+// Renames a file. The main source can't be renamed since the engine compiles a
+// fixed file name.
+export async function PATCH(request: Request, { params }: Params) {
+  const project = getProject(params.id);
+  if (!project) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+  if (params.name === getEngine(project.engine).mainFileName) {
+    return NextResponse.json(
+      { error: "The main file can't be renamed" },
+      { status: 400 },
+    );
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const newName = typeof body.name === "string" ? safeFileName(body.name) : null;
+  if (!newName) {
+    return NextResponse.json({ error: "Invalid name" }, { status: 400 });
+  }
+
+  if (!renameProjectFile(params.id, params.name, newName)) {
+    return NextResponse.json(
+      { error: "Could not rename (the name may be taken)" },
+      { status: 400 },
+    );
+  }
+  touchUpdated(params.id);
+  return NextResponse.json({ name: newName });
 }
 
 export function DELETE(_request: Request, { params }: Params) {

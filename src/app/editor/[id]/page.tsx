@@ -193,6 +193,13 @@ export default function EditorPage({ params }: { params: { id: string } }) {
     openFile(mainFileRef.current);
   }
 
+  // the open file was renamed: keep editing it under the new name
+  function handleFileRenamed(oldName: string, newName: string) {
+    if (oldName !== activeFileRef.current) return;
+    setActiveFile(newName);
+    activeFileRef.current = newName;
+  }
+
   // jump the editor to a line, used when clicking a compile error
   function goToLine(lineNumber: number) {
     if (!editorView) return;
@@ -262,6 +269,7 @@ export default function EditorPage({ params }: { params: { id: string } }) {
             onInsertImage={insertImage}
             onOpenFile={openFile}
             onFileDeleted={handleFileDeleted}
+            onFileRenamed={handleFileRenamed}
           />
         )}
 

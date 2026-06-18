@@ -1,0 +1,44 @@
+{
+  "name": "texset-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop shell for TexSet.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.texset.app",
+    "productName": "TexSet",
+    "directories": {
+      "output": "dist"
+    },
+    "files": ["main.js"],
+    "extraResources": [
+      { "from": "resources/standalone", "to": "standalone" },
+      { "from": "resources/tinytex", "to": "tinytex" }
+    ],
+    "win": {
+      "target": ["appx", "nsis"]
+    },
+    "appx": {
+      "identityName": "TexSet",
+      "publisher": "CN=YOUR_PUBLISHER_ID",
+      "publisherDisplayName": "Your Name"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": ["AppImage"]
+    }
+  }
+}

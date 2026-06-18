@@ -12,11 +12,7 @@ WORKDIR /app
 # build toolchain for better-sqlite3, plus xelatex for compiling documents
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ \
-    texlive-xetex \
-    texlive-latex-recommended \
-    texlive-latex-extra \
-    texlive-fonts-recommended \
-    lmodern \
+    texlive-full \
     fontconfig \
     && rm -rf /var/lib/apt/lists/*
 

@@ -28,14 +28,11 @@ RUN pnpm build
 FROM node:20-bookworm-slim AS runner
 WORKDIR /app
 
-# xelatex and the package sets our starter templates rely on. --no-install-recommends
-# keeps the image from ballooning with docs and language packs we don't need.
+# the full TeX Live so any package a document needs is already there, including
+# language support like babel-spanish. it makes the image large, but it means
+# documents just compile instead of failing on a missing package.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    texlive-xetex \
-    texlive-latex-recommended \
-    texlive-latex-extra \
-    texlive-fonts-recommended \
-    lmodern \
+    texlive-full \
     fontconfig \
     && rm -rf /var/lib/apt/lists/*
 

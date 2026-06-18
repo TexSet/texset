@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { TexStatusBanner } from "@/components/TexStatusBanner";
 import "./globals.css";
 
 // fonts are self-hosted at build time, so this stays fully offline
@@ -45,7 +46,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <TexStatusBanner />
+        {children}
+      </body>
     </html>
   );
 }

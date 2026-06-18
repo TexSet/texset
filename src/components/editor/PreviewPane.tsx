@@ -106,6 +106,26 @@ export function PreviewPane({
     };
   }, [projectId, version, zoom]);
 
+  // pinch-to-zoom on a trackpad arrives as a wheel event with ctrlKey set. We
+  // take over those to zoom the PDF; normal scrolling is left alone (and the
+  // scrollbars show once a page is wider or taller than the pane).
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    if (!scroller) return;
+    function onWheel(event: WheelEvent) {
+      if (!event.ctrlKey) return;
+      event.preventDefault();
+      setZoom((z) =>
+        Math.min(
+          ZOOM_MAX,
+          Math.max(ZOOM_MIN, Number((z - event.deltaY * 0.01).toFixed(2))),
+        ),
+      );
+    }
+    scroller.addEventListener("wheel", onWheel, { passive: false });
+    return () => scroller.removeEventListener("wheel", onWheel);
+  }, []);
+
   // pick the placeholder message for when there's no rendered PDF on screen
   const placeholder = (() => {
     if (documentStatus === "running") return null; // show the spinner instead

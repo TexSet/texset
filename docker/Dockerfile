@@ -29,11 +29,17 @@ FROM node:20-bookworm-slim AS runner
 WORKDIR /app
 
 # the full TeX Live so any package a document needs is already there, including
-# language support like babel-spanish. it makes the image large, but it means
-# documents just compile instead of failing on a missing package.
+# language support like babel-spanish. plus common free system fonts so fontspec
+# works: Liberation (fontconfig even aliases "Times New Roman" to Liberation
+# Serif) and Noto for CJK and Arabic. it makes the image large, but documents
+# just compile instead of failing on a missing package or font.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-full \
     fontconfig \
+    fonts-liberation \
+    fonts-dejavu \
+    fonts-noto-core \
+    fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production

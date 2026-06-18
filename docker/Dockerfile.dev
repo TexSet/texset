@@ -9,11 +9,15 @@ RUN corepack enable
 
 WORKDIR /app
 
-# build toolchain for better-sqlite3, plus xelatex for compiling documents
+# build toolchain for better-sqlite3, plus xelatex and common free fonts
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ \
     texlive-full \
     fontconfig \
+    fonts-liberation \
+    fonts-dejavu \
+    fonts-noto-core \
+    fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
 ENV NEXT_TELEMETRY_DISABLED=1

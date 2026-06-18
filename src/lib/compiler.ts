@@ -15,30 +15,21 @@ export interface CompileResult {
   empty: boolean;
   log: string;
   durationMs: number;
-  passes: number;
 }
 
-// LaTeX often needs a second run to settle cross-references, the table of
-// contents, and labels. We re-run while the log asks for it, capped so a
-// genuinely broken document can't loop forever.
-const MAX_PASSES = 3;
-const PASS_TIMEOUT_MS = 60_000;
-
-function needsRerun(log: string): boolean {
-  return /rerun to get|label\(s\) may have changed|undefined references/i.test(
-    log,
-  );
-}
+// latexmk reruns the engine and bibtex/makeindex on its own, so a single run can
+// take a while on a big document. give it room.
+const COMPILE_TIMEOUT_MS = 120_000;
 
 // run the compiler once, forwarding output to onLog as it arrives
-function runPass(
+function runCommand(
   command: string,
   args: string[],
   cwd: string,
   onLog?: (chunk: string) => void,
 ): Promise<{ code: number | null; log: string }> {
   return new Promise((resolve) => {
-    const proc = spawn(command, args, { cwd, timeout: PASS_TIMEOUT_MS });
+    const proc = spawn(command, args, { cwd, timeout: COMPILE_TIMEOUT_MS });
 
     let log = "";
     const collect = (data: Buffer) => {
@@ -61,7 +52,8 @@ function runPass(
 
 // Compile a project, optionally streaming the log through onLog. This is the one
 // place that actually drives the compiler; both the one-shot and the streaming
-// API routes go through here.
+// API routes go through here. The engine's command (latexmk for LaTeX) takes
+// care of reruns and auxiliary tools.
 export async function runCompile(
   projectId: string,
   engineId: string,
@@ -79,7 +71,6 @@ export async function runCompile(
       empty: false,
       log: message,
       durationMs: 0,
-      passes: 0,
     };
   }
 
@@ -93,7 +84,6 @@ export async function runCompile(
       empty: false,
       log: message,
       durationMs: 0,
-      passes: 0,
     };
   }
 
@@ -102,33 +92,20 @@ export async function runCompile(
     mainPath,
     outDir: projectOutputDir(projectId),
   });
-  const cwd = projectDir(projectId);
 
   const start = Date.now();
-  let log = "";
-  let lastCode: number | null = null;
-  let passes = 0;
-
-  for (let i = 0; i < MAX_PASSES; i++) {
-    const pass = await runPass(command, args, cwd, onLog);
-    passes++;
-    log += pass.log;
-    lastCode = pass.code;
-
-    if (pass.code !== 0) break; // a failed run won't get better on a rerun
-    if (!needsRerun(pass.log)) break; // references are settled
-  }
+  const result = await runCommand(command, args, projectDir(projectId), onLog);
 
   const pdfExists = fs.existsSync(outputPdfPath(projectId, engine));
-  // an empty body makes xelatex finish cleanly with no PDF and this notice
-  const empty = !pdfExists && /no pages of output/i.test(log);
+  // an empty body makes the engine finish cleanly with no PDF and this notice
+  const empty = !pdfExists && /no pages of output/i.test(result.log);
+
   return {
-    success: lastCode === 0 && pdfExists,
+    success: result.code === 0 && pdfExists,
     pdfProduced: pdfExists,
     empty,
-    log,
+    log: result.log,
     durationMs: Date.now() - start,
-    passes,
   };
 }
 
@@ -160,7 +137,6 @@ export function compileStream(
         pdfProduced: result.pdfProduced,
         empty: result.empty,
         durationMs: result.durationMs,
-        passes: result.passes,
       });
       controller.close();
     },

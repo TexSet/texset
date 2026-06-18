@@ -1,8 +1,10 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
+import path from "node:path";
 import { getEngine, type Engine } from "./engines";
 import { projectDir, projectOutputDir } from "./paths";
 import { mainSourcePath, outputPdfPath, ensureProjectDirs } from "./storage";
+import { resolveTexBinary } from "./tex";
 
 export interface CompileResult {
   // the compiler exited cleanly with a PDF
@@ -26,10 +28,11 @@ function runCommand(
   command: string,
   args: string[],
   cwd: string,
+  env: NodeJS.ProcessEnv,
   onLog?: (chunk: string) => void,
 ): Promise<{ code: number | null; log: string }> {
   return new Promise((resolve) => {
-    const proc = spawn(command, args, { cwd, timeout: COMPILE_TIMEOUT_MS });
+    const proc = spawn(command, args, { cwd, env, timeout: COMPILE_TIMEOUT_MS });
 
     let log = "";
     const collect = (data: Buffer) => {
@@ -93,8 +96,39 @@ export async function runCompile(
     outDir: projectOutputDir(projectId),
   });
 
+  // find the engine: a system install, or the bundled TinyTeX
+  const tex = resolveTexBinary(command);
+  if (!tex) {
+    const message =
+      `${command} was not found. Install a LaTeX distribution (TeX Live or ` +
+      `MiKTeX) and reopen, or use the TexSet desktop app, which includes one.\n`;
+    onLog?.(message);
+    return {
+      success: false,
+      pdfProduced: false,
+      empty: false,
+      log: message,
+      durationMs: 0,
+    };
+  }
+
+  // when using the bundled distribution, put its bin dir first so the engine
+  // finds its companions (xelatex, bibtex, makeindex)
+  const env = tex.binDir
+    ? {
+        ...process.env,
+        PATH: `${tex.binDir}${path.delimiter}${process.env.PATH ?? ""}`,
+      }
+    : process.env;
+
   const start = Date.now();
-  const result = await runCommand(command, args, projectDir(projectId), onLog);
+  const result = await runCommand(
+    tex.command,
+    args,
+    projectDir(projectId),
+    env,
+    onLog,
+  );
 
   const pdfExists = fs.existsSync(outputPdfPath(projectId, engine));
   // an empty body makes the engine finish cleanly with no PDF and this notice

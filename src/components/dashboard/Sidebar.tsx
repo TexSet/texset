@@ -1,4 +1,5 @@
 import { NewProjectButton } from "./NewProjectButton";
+import { ImportButton } from "./ImportButton";
 
 // Left navigation for the dashboard. Holds the brand, the primary action, and
 // jumps to the page sections. Roomy enough to grow an engine filter and a theme
@@ -10,7 +11,10 @@ export function Sidebar() {
         Tex<span className="text-accent">Set</span>
       </span>
 
-      <NewProjectButton />
+      <div className="flex flex-col gap-2">
+        <NewProjectButton />
+        <ImportButton />
+      </div>
 
       <nav className="flex flex-col gap-0.5 text-sm">
         <a

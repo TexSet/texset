@@ -114,6 +114,14 @@ export default function EditorPage({ params }: { params: { id: string } }) {
     };
   }, [save]);
 
+  // show the project name in the browser tab
+  useEffect(() => {
+    if (project) document.title = `${project.name} · TexSet`;
+    return () => {
+      document.title = "TexSet";
+    };
+  }, [project]);
+
   function handleChange(value: string) {
     setSource(value);
     sourceRef.current = value;

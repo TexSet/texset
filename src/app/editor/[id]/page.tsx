@@ -185,6 +185,15 @@ export default function EditorPage({ params }: { params: { id: string } }) {
     openFile(mainFileRef.current);
   }
 
+  // jump the editor to a line, used when clicking a compile error
+  function goToLine(lineNumber: number) {
+    if (!editorView) return;
+    const target = Math.min(Math.max(lineNumber, 1), editorView.state.doc.lines);
+    const line = editorView.state.doc.line(target);
+    editorView.dispatch({ selection: { anchor: line.from }, scrollIntoView: true });
+    editorView.focus();
+  }
+
   // drop an \includegraphics line for an uploaded image at the cursor
   function insertImage(name: string) {
     const view = editorViewRef.current;
@@ -268,6 +277,7 @@ export default function EditorPage({ params }: { params: { id: string } }) {
                     log={log}
                     status={status}
                     onClose={() => setShowLog(false)}
+                    onGoToLine={goToLine}
                   />
                 )}
               </div>

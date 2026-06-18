@@ -111,3 +111,16 @@ export function deleteProjectFile(projectId: string, name: string): boolean {
   fs.rmSync(target);
   return true;
 }
+
+export function renameProjectFile(
+  projectId: string,
+  oldName: string,
+  newName: string,
+): boolean {
+  const from = resolveProjectFile(projectId, oldName);
+  const to = resolveProjectFile(projectId, newName);
+  // refuse if the source is missing or the destination is taken
+  if (!from || !to || !fs.existsSync(from) || fs.existsSync(to)) return false;
+  fs.renameSync(from, to);
+  return true;
+}

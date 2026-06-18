@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
-import { Download, FilePlus, FileText, Trash2, Upload } from "lucide-react";
+import {
+  Download,
+  FilePlus,
+  FileText,
+  Pencil,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface ProjectFile {
@@ -18,6 +25,7 @@ interface FilesPanelProps {
   onInsertImage: (name: string) => void;
   onOpenFile: (name: string) => void;
   onFileDeleted: (name: string) => void;
+  onFileRenamed: (oldName: string, newName: string) => void;
 }
 
 const TEXT_FILE = /\.(tex|txt|bib|cls|sty)$/i;
@@ -35,12 +43,16 @@ export function FilesPanel({
   onInsertImage,
   onOpenFile,
   onFileDeleted,
+  onFileRenamed,
 }: FilesPanelProps) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<ProjectFile | null>(null);
   const [newName, setNewName] = useState<string | null>(null);
+  // the file currently being renamed, and the text being typed for it
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const uploadInput = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
@@ -81,6 +93,30 @@ export function FilesPanel({
     });
     await refresh();
     onOpenFile(name);
+  }
+
+  function startRename(name: string) {
+    setRenaming(name);
+    setRenameValue(name);
+  }
+
+  async function commitRename() {
+    const oldName = renaming;
+    const next = renameValue.trim();
+    setRenaming(null);
+    if (!oldName || !next || next === oldName) return;
+    const res = await fetch(
+      `/api/projects/${projectId}/files/${encodeURIComponent(oldName)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: next }),
+      },
+    );
+    if (!res.ok) return;
+    const finalName = (await res.json()).name as string;
+    await refresh();
+    if (oldName === activeFile) onFileRenamed(oldName, finalName);
   }
 
   async function confirmDelete() {
@@ -170,7 +206,22 @@ export function FilesPanel({
           </p>
         ) : (
           <ul className="space-y-1">
-            {files.map((file) => (
+            {files.map((file) =>
+              renaming === file.name ? (
+                <li key={file.name}>
+                  <input
+                    autoFocus
+                    value={renameValue}
+                    onChange={(event) => setRenameValue(event.target.value)}
+                    onBlur={commitRename}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") commitRename();
+                      if (event.key === "Escape") setRenaming(null);
+                    }}
+                    className="w-full rounded-md border border-accent bg-surface px-2 py-1 text-xs focus:outline-none"
+                  />
+                </li>
+              ) : (
               <li key={file.name} className="group relative">
                 {file.kind === "image" ? (
                   <button
@@ -235,6 +286,16 @@ export function FilesPanel({
                   </a>
                   {!file.isMain && (
                     <button
+                      onClick={() => startRename(file.name)}
+                      className="rounded-md bg-surface/90 p-1 text-text-muted shadow-soft transition hover:text-text"
+                      aria-label={`Rename ${file.name}`}
+                      title="Rename"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {!file.isMain && (
+                    <button
                       onClick={() => setPendingDelete(file)}
                       className="rounded-md bg-surface/90 p-1 text-text-muted shadow-soft transition hover:text-danger"
                       aria-label={`Delete ${file.name}`}
@@ -245,7 +306,8 @@ export function FilesPanel({
                   )}
                 </div>
               </li>
-            ))}
+              ),
+            )}
           </ul>
         )}
       </div>
